@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NutriPlan — Planificador Semanal</title>
+
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+
+  <!-- Lucide Icons CDN -->
+  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+
+  <!-- Google Fonts: Fraunces (display) + DM Sans (body) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+  <script>
+    /* ─── Tailwind custom config ─── */
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { display: ['Fraunces','serif'], sans: ['DM Sans','sans-serif'] },
+          colors: {
+            sage:   { 50:'#f4f7f4', 100:'#e2ebe2', 200:'#c4d7c4', 300:'#99bb99', 400:'#6a9b6a', 500:'#4e7d4e' },
+            peach:  { 50:'#fff7f3', 100:'#ffe9e0', 200:'#ffd0bc', 300:'#ffad8e', 400:'#ff7f54', 500:'#f55f35' },
+            lavender:{ 50:'#f5f3ff', 100:'#ece8ff', 200:'#d9d3ff', 300:'#bfb3ff', 400:'#9d8cf5', 500:'#7c5fe8' },
+            cream:  { 50:'#fdfcf8', 100:'#f8f5ed', 200:'#f0ead8', 300:'#e4d9bc' },
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* ─── Global base ─── */
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: #fdfcf8;
+      color: #2d2d2d;
+      min-height: 100vh;
+    }
+
+    /* ─── Typography ─── */
+    .font-display { font-family: 'Fraunces', serif; }
+
+    /* ─── Scrollbar ─── */
+    ::-webkit-scrollbar { width: 6px; height: 6px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: #c4d7c4; border-radius: 99px; }
+
+    /* ─── Nav underline animation ─── */
+    .nav-btn { position: relative; transition: color .2s; }
+    .nav-btn::after {
+      content: '';
+      position: absolute; bottom: -4px; left: 0; right: 0;
+      height: 2px; background: #4e7d4e;
+      transform: scaleX(0); transform-origin: left;
+      transition: transform .25s ease;
+    }
+    .nav-btn.active { color: #4e7d4e; font-weight: 600; }
+    .nav-btn.active::after { transform: scaleX(1); }
+
+    /* ─── Post-it card ─── */
+    .postit {
+      background: #fff;
+      border: 1.5px solid #e4d9bc;
+      border-radius: 16px;
+      box-shadow: 0 2px 8px rgba(0,0,0,.06);
+      transition: transform .18s, box-shadow .18s;
+    }
+    .postit:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.1); }
+    .postit-slot {
+      border: 2px dashed #c4d7c4;
+      border-radius: 12px;
+      background: #f4f7f4;
+      transition: background .2s, border-color .2s;
+      cursor: pointer;
+    }
+    .postit-slot:hover { background: #e2ebe2; border-color: #6a9b6a; }
+
+    /* ─── Progress bar ─── */
+    .prog-bar {
+      height: 8px; border-radius: 99px;
+      background: #e4d9bc; overflow: hidden;
+    }
+    .prog-fill {
+      height: 100%; border-radius: 99px;
+      transition: width .4s ease;
+    }
+
+    /* ─── Modal backdrop ─── */
+    #modal-backdrop {
+      backdrop-filter: blur(6px);
+      background: rgba(45,45,45,.4);
+      transition: opacity .2s;
+    }
+
+    /* ─── Input focus ring ─── */
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      box-shadow: 0 0 0 3px rgba(106,155,106,.3);
+    }
+
+    /* ─── Tag ─── */
+    .macro-tag {
+      font-size: .72rem;
+      padding: 2px 8px;
+      border-radius: 99px;
+      font-weight: 500;
+    }
+
+    /* ─── Carousel scroll (days) ─── */
+    #days-carousel {
+      display: grid;
+      grid-template-columns: repeat(7, minmax(0, 1fr));
+      gap: 1rem;
+    }
+    @media (max-width: 768px) {
+      #days-carousel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    /* ─── Animated fade-in ─── */
+    .fade-in { animation: fadeIn .3s ease both; }
+    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
+
+    /* ─── Toast ─── */
+    #toast {
+      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
+      background: #2d2d2d; color: #fff;
+      padding: 10px 20px; border-radius: 99px;
+      font-size: .85rem; pointer-events: none;
+      opacity: 0; transition: opacity .25s;
+      z-index: 9999; white-space: nowrap;
+    }
+    #toast.show { opacity: 1; }
+  </style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════
+     HEADER
+══════════════════════════════════════════ -->
+<header class="sticky top-0 z-40 bg-cream-50/90 backdrop-blur border-b border-cream-300">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
+    <!-- Logo -->
+    <div class="flex items-center gap-2">
+      <div class="w-8 h-8 bg-sage-400 rounded-xl flex items-center justify-center">
+        <i data-lucide="salad" class="w-4 h-4 text-white"></i>
+      </div>
+      <span class="font-display text-xl font-medium text-sage-500">NutriPlan</span>
+    </div>
+
+    <!-- Nav tabs -->
+    <nav class="flex items-center gap-6 text-sm text-gray-500">
+      <button class="nav-btn active" data-view="dashboard">Dashboard</button>
+      <button class="nav-btn" data-view="meals">Mis Comidas</button>
+      <button class="nav-btn" data-view="menus">Mis Menús</button>
+      <button class="nav-btn" data-view="profile">Perfil</button>
+    </nav>
+
+    <!-- Today kcal badge -->
+    <div id="header-kcal" class="hidden md:flex items-center gap-1 text-xs bg-sage-100 text-sage-500 px-3 py-1 rounded-full font-medium">
+      <i data-lucide="flame" class="w-3 h-3"></i>
+      <span id="header-kcal-text">— kcal hoy</span>
+    </div>
+  </div>
+</header>
+
+<!-- ══════════════════════════════════════════
+     MAIN VIEWS
+══════════════════════════════════════════ -->
+<main class="max-w-7xl mx-auto px-4 py-6">
+
+  <!-- ─── VIEW: DASHBOARD ─── -->
+  <section id="view-dashboard" class="fade-in">
+    <!-- Week navigation -->
+    <div class="flex items-center justify-between mb-6">
+      <div>
+        <h1 class="font-display text-3xl font-light">Semana actual</h1>
+        <p id="week-label" class="text-sm text-gray-400 mt-0.5"></p>
+      </div>
+      <div class="flex items-center gap-2">
+        <button id="btn-prev-week" class="w-9 h-9 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-today" class="text-xs px-3 py-1.5 rounded-xl border border-cream-300 hover:bg-cream-100 transition">Hoy</button>
+        <button id="btn-next-week" class="w-9 h-9 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition">
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+        <button id="btn-apply-menu" class="ml-2 text-xs px-4 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5">
+          <i data-lucide="layout-template" class="w-3.5 h-3.5"></i> Aplicar Menú
+        </button>
+      </div>
+    </div>
+
+    <!-- Days grid -->
+    <div id="days-carousel" class="mb-8"></div>
+  </section>
+
+  <!-- ─── VIEW: MIS COMIDAS ─── -->
+  <section id="view-meals" class="fade-in hidden">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="font-display text-3xl font-light">Mis Comidas</h1>
+      <button id="btn-new-meal" class="text-sm px-4 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5">
+        <i data-lucide="plus" class="w-4 h-4"></i> Nueva Comida
+      </button>
+    </div>
+    <div id="meals-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </section>
+
+  <!-- ─── VIEW: MIS MENÚS ─── -->
+  <section id="view-menus" class="fade-in hidden">
+    <div class="flex items-center justify-between mb-6">
+      <h1 class="font-display text-3xl font-light">Mis Menús</h1>
+      <button id="btn-new-menu" class="text-sm px-4 py-2 bg-lavender-400 text-white rounded-xl hover:bg-lavender-500 transition flex items-center gap-1.5">
+        <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Menú
+      </button>
+    </div>
+    <div id="menus-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
+  </section>
+
+  <!-- ─── VIEW: PERFIL ─── -->
+  <section id="view-profile" class="fade-in hidden max-w-2xl mx-auto">
+    <h1 class="font-display text-3xl font-light mb-6">Perfil & Objetivos</h1>
+
+    <!-- Harris-Benedict form -->
+    <div class="postit p-6 mb-6">
+      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        <i data-lucide="user-round" class="w-4 h-4 text-sage-400"></i> Datos físicos
+      </h2>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Edad</label>
+          <input id="p-age" type="number" min="10" max="120" placeholder="30"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Sexo</label>
+          <select id="p-sex" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50">
+            <option value="male">Hombre</option>
+            <option value="female">Mujer</option>
+          </select>
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Peso (kg)</label>
+          <input id="p-weight" type="number" min="30" max="300" placeholder="70"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Altura (cm)</label>
+          <input id="p-height" type="number" min="100" max="250" placeholder="170"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+        <div class="col-span-2">
+          <label class="text-xs text-gray-400 mb-1 block">Nivel de actividad</label>
+          <select id="p-activity" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50">
+            <option value="1.2">Sedentario (sin ejercicio)</option>
+            <option value="1.375">Ligero (1-3 días/semana)</option>
+            <option value="1.55" selected>Moderado (3-5 días/semana)</option>
+            <option value="1.725">Activo (6-7 días/semana)</option>
+            <option value="1.9">Muy activo (doble sesión)</option>
+          </select>
+        </div>
+      </div>
+      <button id="btn-calc-tdee" class="mt-4 w-full py-2 bg-sage-400 text-white rounded-xl text-sm font-medium hover:bg-sage-500 transition">
+        Calcular objetivo calórico
+      </button>
+      <div id="tdee-result" class="mt-4 hidden bg-sage-50 border border-sage-200 rounded-xl p-4 text-sm space-y-1">
+        <p class="font-semibold text-sage-600" id="tdee-text"></p>
+        <p class="text-gray-400 text-xs" id="bmr-text"></p>
+      </div>
+    </div>
+
+    <!-- Macro targets -->
+    <div class="postit p-6">
+      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+        <i data-lucide="chart-pie" class="w-4 h-4 text-lavender-400"></i> Distribución de Macros
+      </h2>
+      <p class="text-xs text-gray-400 mb-4">Los porcentajes deben sumar 100%.</p>
+      <div class="grid grid-cols-3 gap-4">
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Carbos (%)</label>
+          <input id="p-carbs-pct" type="number" min="0" max="100" value="40"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Proteína (%)</label>
+          <input id="p-prot-pct" type="number" min="0" max="100" value="30"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+        <div>
+          <label class="text-xs text-gray-400 mb-1 block">Grasas (%)</label>
+          <input id="p-fat-pct" type="number" min="0" max="100" value="30"
+            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+        </div>
+      </div>
+      <button id="btn-save-profile" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
+        Guardar perfil
+      </button>
+    </div>
+  </section>
+
+</main>
+
+<!-- ══════════════════════════════════════════
+     TOAST
+══════════════════════════════════════════ -->
+<div id="toast"></div>
+
+<!-- ══════════════════════════════════════════
+     MODAL BACKDROP
+══════════════════════════════════════════ -->
+<div id="modal-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
+  <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
+    <!-- Injected dynamically -->
+  </div>
+</div>
+
+
+<!-- ══════════════════════════════════════════
+     JAVASCRIPT
+══════════════════════════════════════════ -->
+<script>
+/* ════════════════════════════════════════════════
+   SECTION 1 — STATE & STORAGE
+   Centralised data model. Everything persisted
+   in localStorage under the key "nutriplan_v1".
+════════════════════════════════════════════════ */
+
+const STORAGE_KEY = 'nutriplan_v1';
+
+/** Load the full app state from localStorage */
+function loadState() {
+  try {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultState();
+  } catch {
+    return defaultState();
+  }
+}
+
+/** Default empty state */
+function defaultState() {
+  return {
+    profile: {
+      age: null, sex: 'male', weight: null, height: null,
+      activity: 1.55, tdee: null, bmr: null,
+      carbsPct: 40, protPct: 30, fatPct: 30
+    },
+    // Custom ingredients saved by user (fallback manual)
+    customIngredients: [], // { id, name, kcalPer100, protPer100, carbsPer100, fatPer100 }
+    // Saved meal recipes
+    meals: [], // { id, name, ingredients: [{ingredientId|name, grams, kcal, prot, carbs, fat}] }
+    // Weekly plan: keys are ISO date strings (yyyy-mm-dd)
+    // each day: { slots: [ mealId | null ] }
+    weekPlan: {},
+    // Menu templates
+    menus: [] // { id, name, mealsPerDay, days: [ [mealId|null, ...], ... ] }  7 days × mealsPerDay
+  };
+}
+
+let STATE = loadState();
+
+/** Persist current state */
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
+}
+
+/* ════════════════════════════════════════════════
+   SECTION 2 — UTILITIES
+════════════════════════════════════════════════ */
+
+const $ = id => document.getElementById(id);
+const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
+
+/** Format a number to 1 decimal, never showing .0 when not needed */
+const fmt = n => Number.isFinite(n) ? Math.round(n) : 0;
+
+/** Show a brief toast message */
+function toast(msg, duration = 2500) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), duration);
+}
+
+/** Get ISO date string from a Date object */
+function isoDate(d) {
+  return d.toISOString().split('T')[0];
+}
+
+/** Get Monday of the week containing date d */
+function weekMonday(d = new Date()) {
+  const day = d.getDay(); // 0 = Sunday
+  const diff = (day === 0 ? -6 : 1 - day);
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diff);
+  monday.setHours(0,0,0,0);
+  return monday;
+}
+
+/** Array of 7 Date objects starting from monday */
+function weekDates(monday) {
+  return Array.from({length:7}, (_,i) => {
+    const d = new Date(monday);
+    d.setDate(monday.getDate() + i);
+    return d;
+  });
+}
+
+const DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const MONTH_NAMES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+/** Sum macros of a meal object */
+function mealTotals(meal) {
+  const r = { kcal:0, prot:0, carbs:0, fat:0 };
+  (meal.ingredients || []).forEach(ing => {
+    r.kcal  += ing.kcal  || 0;
+    r.prot  += ing.prot  || 0;
+    r.carbs += ing.carbs || 0;
+    r.fat   += ing.fat   || 0;
+  });
+  return r;
+}
+
+/** Find a meal by id */
+const getMeal = id => STATE.meals.find(m => m.id === id);
+
+/* ════════════════════════════════════════════════
+   SECTION 3 — NAVIGATION
+════════════════════════════════════════════════ */
+
+let currentView = 'dashboard';
+
+function showView(name) {
+  ['dashboard','meals','menus','profile'].forEach(v => {
+    $(`view-${v}`).classList.toggle('hidden', v !== name);
+    $(`view-${v}`).classList.toggle('fade-in', v === name);
+  });
+  document.querySelectorAll('.nav-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.view === name);
+  });
+  currentView = name;
+  if (name === 'dashboard') renderDashboard();
+  if (name === 'meals')     renderMeals();
+  if (name === 'menus')     renderMenus();
+  if (name === 'profile')   loadProfileForm();
+}
+
+document.querySelectorAll('.nav-btn').forEach(btn => {
+  btn.addEventListener('click', () => showView(btn.dataset.view));
+});
+
+/* ════════════════════════════════════════════════
+   SECTION 4 — HARRIS-BENEDICT & MACROS
+════════════════════════════════════════════════ */
+
+/**
+ * Calculates BMR using the revised Harris-Benedict equation.
+ * Male:   88.362 + (13.397 × weight) + (4.799 × height) − (5.677 × age)
+ * Female: 447.593 + (9.247 × weight) + (3.098 × height) − (4.330 × age)
+ */
+function calcHarrisBenedict({ age, sex, weight, height, activity }) {
+  let bmr;
+  if (sex === 'male') {
+    bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
+  } else {
+    bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
+  }
+  const tdee = Math.round(bmr * activity);
+  return { bmr: Math.round(bmr), tdee };
+}
+
+/** Daily macro goals in grams based on TDEE */
+function macroGoals() {
+  const { tdee, carbsPct, protPct, fatPct } = STATE.profile;
+  if (!tdee) return null;
+  return {
+    kcal:  tdee,
+    carbs: Math.round((tdee * carbsPct / 100) / 4),  // 4 kcal/g
+    prot:  Math.round((tdee * protPct  / 100) / 4),
+    fat:   Math.round((tdee * fatPct   / 100) / 9),  // 9 kcal/g
+  };
+}
+
+$('btn-calc-tdee').addEventListener('click', () => {
+  const age      = +$('p-age').value;
+  const sex      = $('p-sex').value;
+  const weight   = +$('p-weight').value;
+  const height   = +$('p-height').value;
+  const activity = +$('p-activity').value;
+  if (!age || !weight || !height) { toast('Completa todos los campos'); return; }
+  const { bmr, tdee } = calcHarrisBenedict({ age, sex, weight, height, activity });
+  $('tdee-text').textContent = `Objetivo: ${tdee} kcal/día`;
+  $('bmr-text').textContent  = `Metabolismo basal (BMR): ${bmr} kcal`;
+  $('tdee-result').classList.remove('hidden');
+  // Store temporarily until saved
+  STATE.profile._tempTdee = tdee;
+  STATE.profile._tempBmr  = bmr;
+});
+
+$('btn-save-profile').addEventListener('click', () => {
+  const carbsPct = +$('p-carbs-pct').value;
+  const protPct  = +$('p-prot-pct').value;
+  const fatPct   = +$('p-fat-pct').value;
+  if (carbsPct + protPct + fatPct !== 100) { toast('Los macros deben sumar 100%'); return; }
+
+  Object.assign(STATE.profile, {
+    age:      +$('p-age').value || STATE.profile.age,
+    sex:      $('p-sex').value,
+    weight:   +$('p-weight').value || STATE.profile.weight,
+    height:   +$('p-height').value || STATE.profile.height,
+    activity: +$('p-activity').value,
+    carbsPct, protPct, fatPct,
+    tdee: STATE.profile._tempTdee || STATE.profile.tdee,
+    bmr:  STATE.profile._tempBmr  || STATE.profile.bmr,
+  });
+  saveState();
+  toast('✓ Perfil guardado');
+  updateHeaderKcal();
+});
+
+/** Populate profile form from state */
+function loadProfileForm() {
+  const p = STATE.profile;
+  if (p.age)    $('p-age').value    = p.age;
+  if (p.weight) $('p-weight').value = p.weight;
+  if (p.height) $('p-height').value = p.height;
+  $('p-sex').value      = p.sex;
+  $('p-activity').value = p.activity;
+  $('p-carbs-pct').value = p.carbsPct;
+  $('p-prot-pct').value  = p.protPct;
+  $('p-fat-pct').value   = p.fatPct;
+  if (p.tdee) {
+    $('tdee-text').textContent = `Objetivo: ${p.tdee} kcal/día`;
+    $('bmr-text').textContent  = `Metabolismo basal (BMR): ${p.bmr} kcal`;
+    $('tdee-result').classList.remove('hidden');
+  }
+}
+
+function updateHeaderKcal() {
+  const goals = macroGoals();
+  if (!goals) return;
+  $('header-kcal').classList.remove('hidden');
+  // Sum today's kcal
+  const todayKey = isoDate(new Date());
+  const dayData  = STATE.weekPlan[todayKey];
+  let eaten = 0;
+  (dayData?.slots || []).forEach(sid => {
+    const m = getMeal(sid);
+    if (m) eaten += mealTotals(m).kcal;
+  });
+  $('header-kcal-text').textContent = `${fmt(eaten)} / ${goals.kcal} kcal`;
+}
+
+/* ════════════════════════════════════════════════
+   SECTION 5 — DASHBOARD (weekly view)
+════════════════════════════════════════════════ */
+
+let currentWeekMonday = weekMonday();
+
+function renderDashboard() {
+  const dates = weekDates(currentWeekMonday);
+  // Week label
+  const start = dates[0], end = dates[6];
+  $('week-label').textContent =
+    `${start.getDate()} ${MONTH_NAMES[start.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
+
+  const goals = macroGoals();
+  const container = $('days-carousel');
+  container.innerHTML = '';
+
+  dates.forEach((date, di) => {
+    const key     = isoDate(date);
+    const dayData = STATE.weekPlan[key] || { slots: [] };
+    const isToday = isoDate(new Date()) === key;
+
+    // Compute totals for the day
+    let dayKcal=0, dayProt=0, dayCarbs=0, dayFat=0;
+    dayData.slots.forEach(sid => {
+      const m = getMeal(sid);
+      if (m) { const t=mealTotals(m); dayKcal+=t.kcal; dayProt+=t.prot; dayCarbs+=t.carbs; dayFat+=t.fat; }
+    });
+
+    // Progress percent (cap at 100%)
+    const pctKcal  = goals ? Math.min(100, Math.round(dayKcal  / goals.kcal  * 100)) : 0;
+    const pctCarbs = goals ? Math.min(100, Math.round(dayCarbs / goals.carbs * 100)) : 0;
+    const pctProt  = goals ? Math.min(100, Math.round(dayProt  / goals.prot  * 100)) : 0;
+    const pctFat   = goals ? Math.min(100, Math.round(dayFat   / goals.fat   * 100)) : 0;
+
+    // Build slot items HTML
+    const slotsHtml = dayData.slots.map((sid, si) => {
+      const m = getMeal(sid);
+      if (!m) return `
+        <div class="postit-slot p-2 text-xs text-gray-400 text-center flex items-center justify-center gap-1"
+          data-key="${key}" data-si="${si}" onclick="openSlotPicker('${key}', ${si})">
+          <i data-lucide="plus" class="w-3 h-3"></i> Añadir
+        </div>`;
+      const t = mealTotals(m);
+      return `
+        <div class="postit p-2.5 cursor-pointer text-xs" onclick="openMealDetail('${m.id}')">
+          <div class="font-medium text-gray-700 truncate">${m.name}</div>
+          <div class="flex items-center justify-between mt-1">
+            <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
+            <button class="text-gray-300 hover:text-red-400 transition ml-1"
+              onclick="event.stopPropagation(); removeSlot('${key}',${si})">
+              <i data-lucide="x" class="w-3 h-3"></i>
+            </button>
+          </div>
+        </div>`;
+    }).join('');
+
+    // Add slot button
+    const addSlotBtn = `
+      <button class="postit-slot p-2 text-xs text-gray-400 text-center flex items-center justify-center gap-1 w-full"
+        onclick="addSlot('${key}')">
+        <i data-lucide="plus" class="w-3 h-3"></i> Comida
+      </button>`;
+
+    // Macro progress bars
+    const barsHtml = goals ? `
+      <div class="mt-3 space-y-1.5">
+        <div class="flex justify-between text-[10px] text-gray-400">
+          <span>Kcal</span><span>${fmt(dayKcal)}/${goals.kcal}</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill bg-peach-300" style="width:${pctKcal}%"></div></div>
+        <div class="flex gap-1 mt-1">
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">HC</div>
+            <div class="prog-bar"><div class="prog-fill bg-lavender-300" style="width:${pctCarbs}%"></div></div></div>
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">Prot</div>
+            <div class="prog-bar"><div class="prog-fill bg-sage-300" style="width:${pctProt}%"></div></div></div>
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">Grasas</div>
+            <div class="prog-bar"><div class="prog-fill bg-cream-300" style="width:${pctFat}%"></div></div></div>
+        </div>
+      </div>` : '';
+
+    const col = document.createElement('div');
+    col.className = `flex flex-col gap-2`;
+    col.innerHTML = `
+      <div class="flex items-center justify-between mb-1">
+        <div>
+          <span class="text-xs font-semibold ${isToday ? 'text-sage-500' : 'text-gray-500'}">${DAY_NAMES[di]}</span>
+          <span class="ml-1 text-xs text-gray-300">${date.getDate()}/${date.getMonth()+1}</span>
+        </div>
+        ${isToday ? '<div class="w-1.5 h-1.5 rounded-full bg-sage-400"></div>' : ''}
+      </div>
+      <!-- Slots -->
+      <div class="space-y-2" id="slots-${key}">
+        ${slotsHtml}
+      </div>
+      ${addSlotBtn}
+      <!-- Progress -->
+      <div class="postit p-3 mt-1">${barsHtml}</div>
+    `;
+    container.appendChild(col);
+  });
+
+  lucide.createIcons();
+  updateHeaderKcal();
+}
+
+// Week navigation
+$('btn-prev-week').addEventListener('click', () => {
+  currentWeekMonday.setDate(currentWeekMonday.getDate() - 7);
+  renderDashboard();
+});
+$('btn-next-week').addEventListener('click', () => {
+  currentWeekMonday.setDate(currentWeekMonday.getDate() + 7);
+  renderDashboard();
+});
+$('btn-today').addEventListener('click', () => {
+  currentWeekMonday = weekMonday();
+  renderDashboard();
+});
+
+/** Add an empty slot to a day */
+function addSlot(key) {
+  if (!STATE.weekPlan[key]) STATE.weekPlan[key] = { slots: [] };
+  // Open picker immediately
+  const si = STATE.weekPlan[key].slots.length;
+  STATE.weekPlan[key].slots.push(null);
+  saveState();
+  renderDashboard();
+  openSlotPicker(key, si);
+}
+
+/** Remove a slot from a day */
+function removeSlot(key, si) {
+  if (!STATE.weekPlan[key]) return;
+  STATE.weekPlan[key].slots.splice(si, 1);
+  saveState();
+  renderDashboard();
+}
+
+/** Open picker to assign a meal to a slot */
+function openSlotPicker(key, si) {
+  const meals = STATE.meals;
+  if (meals.length === 0) {
+    toast('Primero crea comidas en "Mis Comidas"');
+    return;
+  }
+  const listHtml = meals.map(m => {
+    const t = mealTotals(m);
+    return `<button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl"
+      onclick="assignSlot('${key}',${si},'${m.id}')">
+      <span class="font-medium text-sm">${m.name}</span>
+      <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
+    </button>`;
+  }).join('');
+
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">Elegir comida</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
+    </div>
+  `);
+}
+
+function assignSlot(key, si, mealId) {
+  if (!STATE.weekPlan[key]) STATE.weekPlan[key] = { slots: [] };
+  STATE.weekPlan[key].slots[si] = mealId;
+  saveState();
+  closeModal();
+  renderDashboard();
+}
+
+/* ════════════════════════════════════════════════
+   SECTION 6 — MEAL DETAIL MODAL
+════════════════════════════════════════════════ */
+
+function openMealDetail(mealId) {
+  const m = getMeal(mealId);
+  if (!m) return;
+  const t = mealTotals(m);
+
+  const ingHtml = (m.ingredients || []).map(ing => `
+    <div class="flex items-center justify-between py-2 border-b border-cream-200 last:border-0 text-sm">
+      <div>
+        <span class="font-medium">${ing.name}</span>
+        <span class="text-gray-400 ml-1">${ing.grams}g</span>
+      </div>
+      <div class="flex gap-2">
+        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(ing.kcal)} kcal</span>
+        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(ing.prot)}g P</span>
+        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(ing.carbs)}g HC</span>
+        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(ing.fat)}g G</span>
+      </div>
+    </div>`).join('');
+
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-1">
+        <h3 class="font-display text-2xl">${m.name}</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="flex gap-3 mb-5 flex-wrap">
+        <span class="macro-tag bg-peach-100 text-peach-500 text-sm">${fmt(t.kcal)} kcal</span>
+        <span class="macro-tag bg-sage-100 text-sage-500 text-sm">${fmt(t.prot)}g Proteína</span>
+        <span class="macro-tag bg-lavender-100 text-lavender-500 text-sm">${fmt(t.carbs)}g Carbos</span>
+        <span class="macro-tag bg-cream-200 text-gray-500 text-sm">${fmt(t.fat)}g Grasas</span>
+      </div>
+      <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ingredientes</h4>
+      <div>${ingHtml || '<p class="text-sm text-gray-400">Sin ingredientes</p>'}</div>
+    </div>
+  `);
+}
+
+/* ════════════════════════════════════════════════
+   SECTION 7 — MIS COMIDAS (meal management)
+════════════════════════════════════════════════ */
+
+function renderMeals() {
+  const container = $('meals-list');
+  container.innerHTML = '';
+  if (STATE.meals.length === 0) {
+    container.innerHTML = `<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
+      <i data-lucide="utensils" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
+      <p>Aún no tienes comidas guardadas</p>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+  STATE.meals.forEach(m => {
+    const t = mealTotals(m);
+    const card = document.createElement('div');
+    card.className = 'postit p-4 flex flex-col gap-3';
+    card.innerHTML = `
+      <div class="flex items-start justify-between gap-2">
+        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${m.name}</h3>
+        <div class="flex gap-1 shrink-0">
+          <button class="text-gray-300 hover:text-sage-500 transition" onclick="openEditMeal('${m.id}')">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button class="text-gray-300 hover:text-red-400 transition" onclick="deleteMeal('${m.id}')">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      <div class="flex flex-wrap gap-1.5">
+        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
+        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(t.prot)}g P</span>
+        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(t.carbs)}g HC</span>
+        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(t.fat)}g G</span>
+      </div>
+      <div class="text-xs text-gray-400">${(m.ingredients||[]).length} ingrediente(s)</div>
+    `;
+    container.appendChild(card);
+  });
+  lucide.createIcons();
+}
+
+function deleteMeal(id) {
+  STATE.meals = STATE.meals.filter(m => m.id !== id);
+  // Remove from week plan
+  Object.keys(STATE.weekPlan).forEach(k => {
+    STATE.weekPlan[k].slots = STATE.weekPlan[k].slots.map(s => s === id ? null : s);
+  });
+  saveState();
+  renderMeals();
+  toast('Comida eliminada');
+}
+
+$('btn-new-meal').addEventListener('click', () => openEditMeal(null));
+
+/* ── Meal editor modal ── */
+function openEditMeal(mealId) {
+  const meal = mealId ? getMeal(mealId) : null;
+  const ings = meal ? [...meal.ingredients] : [];
+
+  function buildIngredientRows() {
+    return ings.map((ing, i) => `
+      <div class="flex items-center justify-between gap-2 py-2 border-b border-cream-200 last:border-0 text-xs">
+        <span class="font-medium text-gray-700 flex-1 truncate">${ing.name} (${ing.grams}g)</span>
+        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(ing.kcal)}</span>
+        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(ing.prot)}g</span>
+        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(ing.carbs)}g</span>
+        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(ing.fat)}g</span>
+        <button class="text-gray-300 hover:text-red-400" onclick="removeIngFromEditor(${i})">
+          <i data-lucide="x" class="w-3 h-3"></i>
+        </button>
+      </div>`).join('');
+  }
+
+  function renderModal() {
+    const totalKcal  = ings.reduce((a,i)=>a+i.kcal,0);
+    const totalProt  = ings.reduce((a,i)=>a+i.prot,0);
+    const totalCarbs = ings.reduce((a,i)=>a+i.carbs,0);
+    const totalFat   = ings.reduce((a,i)=>a+i.fat,0);
+
+    openModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display text-xl">${meal ? 'Editar' : 'Nueva'} comida</h3>
+          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+
+        <input id="meal-name-input" type="text" placeholder="Nombre de la comida"
+          value="${meal?.name || ''}"
+          class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4" />
+
+        <!-- Ingredient search -->
+        <div class="mb-3">
+          <label class="text-xs text-gray-400 mb-1 block">Buscar ingrediente (Open Food Facts)</label>
+          <div class="flex gap-2">
+            <input id="ing-search" type="text" placeholder="ej. arroz, pollo, aguacate…"
+              class="flex-1 border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
+            <button onclick="searchIngredient()" class="px-3 py-2 bg-sage-400 text-white rounded-xl text-sm hover:bg-sage-500 transition">
+              <i data-lucide="search" class="w-4 h-4"></i>
+            </button>
+          </div>
+          <div id="ing-results" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
+        </div>
+
+        <!-- Manual ingredient fallback -->
+        <details class="mb-4">
+          <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 flex items-center gap-1">
+            <i data-lucide="plus-circle" class="w-3 h-3"></i> Añadir ingrediente manualmente
+          </summary>
+          <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+            <input id="mi-name"  placeholder="Nombre" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2" />
+            <input id="mi-kcal"  type="number" placeholder="Kcal/100g"  class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
+            <input id="mi-prot"  type="number" placeholder="Prot/100g"  class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
+            <input id="mi-carbs" type="number" placeholder="HC/100g"    class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
+            <input id="mi-fat"   type="number" placeholder="Grasas/100g" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
+            <input id="mi-grams" type="number" placeholder="Gramos a añadir" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2" />
+            <button onclick="addManualIngredient()" class="col-span-2 py-1.5 bg-peach-300 text-white rounded-xl hover:bg-peach-400 transition">
+              Guardar y añadir
+            </button>
+          </div>
+        </details>
+
+        <!-- Current ingredients -->
+        <div id="ing-list">
+          ${buildIngredientRows() || '<p class="text-xs text-gray-400 py-2">Sin ingredientes aún</p>'}
+        </div>
+
+        <!-- Totals -->
+        <div class="mt-3 flex gap-2 flex-wrap">
+          <span class="macro-tag bg-peach-100 text-peach-500">${fmt(totalKcal)} kcal</span>
+          <span class="macro-tag bg-sage-100 text-sage-500">${fmt(totalProt)}g P</span>
+          <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(totalCarbs)}g HC</span>
+          <span class="macro-tag bg-cream-200 text-gray-500">${fmt(totalFat)}g G</span>
+        </div>
+
+        <button id="btn-save-meal" onclick="saveMealFromEditor()" class="mt-4 w-full py-2.5 bg-sage-400 text-white rounded-xl text-sm font-medium hover:bg-sage-500 transition">
+          Guardar comida
+        </button>
+      </div>
+    `);
+
+    // Expose helpers to global for onclick in modal
+    window._editorIngs = ings;
+    window._editorMealId = mealId;
+
+    window.removeIngFromEditor = function(i) {
+      ings.splice(i, 1);
+      renderModal();
+    };
+
+    window.saveMealFromEditor = function() {
+      const name = $('meal-name-input')?.value?.trim();
+      if (!name) { toast('Pon un nombre a la comida'); return; }
+      if (meal) {
+        meal.name = name;
+        meal.ingredients = [...ings];
+      } else {
+        STATE.meals.push({ id: uid(), name, ingredients: [...ings] });
+      }
+      saveState();
+      closeModal();
+      renderMeals();
+      toast('✓ Comida guardada');
+    };
+
+    window.addManualIngredient = function() {
+      const name  = $('mi-name')?.value?.trim();
+      const kcal  = +$('mi-kcal')?.value;
+      const prot  = +$('mi-prot')?.value;
+      const carbs = +$('mi-carbs')?.value;
+      const fat   = +$('mi-fat')?.value;
+      const grams = +$('mi-grams')?.value;
+      if (!name || !grams) { toast('Nombre y gramos son obligatorios'); return; }
+
+      // Save custom ingredient
+      const existing = STATE.customIngredients.find(ci => ci.name.toLowerCase() === name.toLowerCase());
+      if (!existing) {
+        STATE.customIngredients.push({ id: uid(), name, kcalPer100: kcal, protPer100: prot, carbsPer100: carbs, fatPer100: fat });
+        saveState();
+      }
+
+      const factor = grams / 100;
+      ings.push({
+        name, grams,
+        kcal:  kcal  * factor,
+        prot:  prot  * factor,
+        carbs: carbs * factor,
+        fat:   fat   * factor,
+      });
+      renderModal();
+    };
+
+    window.addIngredientFromSearch = function(data, gramsVal) {
+      const grams = gramsVal || 100;
+      const factor = grams / 100;
+      ings.push({
+        name:  data.name,
+        grams,
+        kcal:  (data.kcalPer100  || 0) * factor,
+        prot:  (data.protPer100  || 0) * factor,
+        carbs: (data.carbsPer100 || 0) * factor,
+        fat:   (data.fatPer100   || 0) * factor,
+      });
+      renderModal();
+    };
+
+    window.searchIngredient = async function() {
+      const query = $('ing-search')?.value?.trim();
+      if (!query) return;
+      const resultsEl = $('ing-results');
+      resultsEl.innerHTML = '<p class="text-xs text-gray-400 animate-pulse">Buscando…</p>';
+
+      // First check custom ingredients
+      const customMatches = STATE.customIngredients.filter(ci =>
+        ci.name.toLowerCase().includes(query.toLowerCase())
+      );
+
+      try {
+        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6&fields=product_name,nutriments,brands`;
+        const res  = await fetch(url);
+        const json = await res.json();
+        const products = (json.products || []).filter(p =>
+          p.product_name && p.nutriments &&
+          p.nutriments['energy-kcal_100g'] != null
+        ).slice(0, 6);
+
+        let html = '';
+
+        // Custom first
+        customMatches.forEach(ci => {
+          html += `<div class="flex items-center justify-between p-2 bg-lavender-50 rounded-xl gap-2 text-xs">
+            <div>
+              <span class="font-medium">${ci.name}</span>
+              <span class="text-gray-400 ml-1">(personalizado)</span>
+              <div class="text-gray-400">${ci.kcalPer100} kcal/100g</div>
+            </div>
+            <div class="flex items-center gap-1">
+              <input type="number" min="1" value="100" id="grams-c-${ci.id}"
+                class="w-16 border border-cream-300 rounded-lg px-2 py-1 bg-white" placeholder="g" />
+              <button onclick="addIngredientFromSearch({name:'${ci.name.replace(/'/g,"\\'")}',kcalPer100:${ci.kcalPer100},protPer100:${ci.protPer100},carbsPer100:${ci.carbsPer100},fatPer100:${ci.fatPer100}}, +document.getElementById('grams-c-${ci.id}').value)"
+                class="px-2 py-1 bg-sage-400 text-white rounded-lg hover:bg-sage-500 transition">+</button>
+            </div>
+          </div>`;
+        });
+
+        products.forEach((p, pi) => {
+          const n = p.nutriments;
+          const name  = p.product_name;
+          const kcal  = Math.round(n['energy-kcal_100g'] || 0);
+          const prot  = Math.round(n['proteins_100g']    || 0);
+          const carbs = Math.round(n['carbohydrates_100g']|| 0);
+          const fat   = Math.round(n['fat_100g']         || 0);
+          const brand = p.brands ? ` · ${p.brands.split(',')[0]}` : '';
+          html += `<div class="flex items-center justify-between p-2 bg-cream-50 rounded-xl gap-2 text-xs">
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">${name}<span class="text-gray-400 font-normal">${brand}</span></div>
+              <div class="text-gray-400">${kcal} kcal · ${prot}g P · ${carbs}g HC · ${fat}g G</div>
+            </div>
+            <div class="flex items-center gap-1 shrink-0">
+              <input type="number" min="1" value="100" id="grams-p-${pi}"
+                class="w-16 border border-cream-300 rounded-lg px-2 py-1 bg-white" placeholder="g" />
+              <button onclick="addIngredientFromSearch({name:'${name.replace(/'/g,"\\'").replace(/\n/g,' ')}',kcalPer100:${kcal},protPer100:${prot},carbsPer100:${carbs},fatPer100:${fat}}, +document.getElementById('grams-p-${pi}').value)"
+                class="px-2 py-1 bg-sage-400 text-white rounded-lg hover:bg-sage-500 transition">+</button>
+            </div>
+          </div>`;
+        });
+
+        if (!html) {
+          html = '<p class="text-xs text-gray-400">Sin resultados. Usa el formulario manual.</p>';
+        }
+        resultsEl.innerHTML = html;
+        lucide.createIcons();
+      } catch(e) {
+        resultsEl.innerHTML = '<p class="text-xs text-red-400">Error de red. Prueba el formulario manual.</p>';
+      }
+    };
+
+    lucide.createIcons();
+  }
+
+  renderModal();
+}
+
+/* ════════════════════════════════════════════════
+   SECTION 8 — MIS MENÚS (menu templates)
+════════════════════════════════════════════════ */
+
+function renderMenus() {
+  const container = $('menus-list');
+  container.innerHTML = '';
+  if (STATE.menus.length === 0) {
+    container.innerHTML = `<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
+      <i data-lucide="layout-template" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
+      <p>Aún no tienes plantillas de menú</p>
+    </div>`;
+    lucide.createIcons();
+    return;
+  }
+  STATE.menus.forEach(menu => {
+    const card = document.createElement('div');
+    card.className = 'postit p-5 flex flex-col gap-3';
+    card.innerHTML = `
+      <div class="flex items-start justify-between">
+        <div>
+          <h3 class="font-semibold text-gray-800">${menu.name}</h3>
+          <p class="text-xs text-gray-400 mt-0.5">${menu.mealsPerDay} comidas/día · 7 días</p>
+        </div>
+        <div class="flex gap-1">
+          <button class="text-gray-300 hover:text-sage-500 transition" onclick="editMenu('${menu.id}')">
+            <i data-lucide="pencil" class="w-4 h-4"></i>
+          </button>
+          <button class="text-gray-300 hover:text-red-400 transition" onclick="deleteMenu('${menu.id}')">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      </div>
+      <button onclick="applyMenu('${menu.id}')" class="text-xs px-3 py-2 bg-lavender-100 text-lavender-500 rounded-xl hover:bg-lavender-200 transition font-medium">
+        Aplicar a semana actual
+      </button>
+    `;
+    container.appendChild(card);
+  });
+  lucide.createIcons();
+}
+
+function deleteMenu(id) {
+  STATE.menus = STATE.menus.filter(m => m.id !== id);
+  saveState();
+  renderMenus();
+  toast('Menú eliminado');
+}
+
+$('btn-new-menu').addEventListener('click', () => {
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">Nuevo menú</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <label class="text-xs text-gray-400 mb-1 block">Nombre del menú</label>
+      <input id="menu-name-input" type="text" placeholder="ej. Menú de volumen"
+        class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4" />
+      <label class="text-xs text-gray-400 mb-1 block">¿Cuántas comidas harás al día?</label>
+      <select id="menu-meals-per-day" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4">
+        <option value="2">2 comidas</option>
+        <option value="3" selected>3 comidas</option>
+        <option value="4">4 comidas</option>
+        <option value="5">5 comidas</option>
+        <option value="6">6 comidas</option>
+      </select>
+      <button onclick="createMenu()" class="w-full py-2.5 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
+        Crear menú
+      </button>
+    </div>
+  `);
+
+  window.createMenu = function() {
+    const name = $('menu-name-input')?.value?.trim();
+    const mpd  = +($('menu-meals-per-day')?.value || 3);
+    if (!name) { toast('Escribe un nombre'); return; }
+    const newMenu = {
+      id: uid(), name, mealsPerDay: mpd,
+      // 7 days × mpd slots (null = empty)
+      days: Array.from({length:7}, () => Array(mpd).fill(null))
+    };
+    STATE.menus.push(newMenu);
+    saveState();
+    closeModal();
+    renderMenus();
+    toast('✓ Menú creado');
+    // Open editor immediately
+    editMenu(newMenu.id);
+  };
+});
+
+function editMenu(menuId) {
+  const menu = STATE.menus.find(m => m.id === menuId);
+  if (!menu) return;
+
+  function renderMenuEditor() {
+    let daysHtml = '';
+    menu.days.forEach((daySlots, di) => {
+      let slotsHtml = daySlots.map((mealId, si) => {
+        const m = mealId ? getMeal(mealId) : null;
+        return `<div class="flex items-center justify-between gap-2 py-1.5 border-b border-cream-200 last:border-0 text-xs">
+          <span class="flex-1 truncate font-medium text-gray-600">${m ? m.name : '<span class="text-gray-300">—</span>'}</span>
+          <button onclick="pickMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-sage-500 transition">
+            <i data-lucide="pencil" class="w-3 h-3"></i>
+          </button>
+          ${mealId ? `<button onclick="clearMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-red-400 transition"><i data-lucide="x" class="w-3 h-3"></i></button>` : ''}
+        </div>`;
+      }).join('');
+      daysHtml += `<div class="mb-3">
+        <div class="text-xs font-semibold text-gray-500 mb-1">${DAY_NAMES[di]}</div>
+        <div class="bg-cream-50 rounded-xl p-2">${slotsHtml}</div>
+      </div>`;
+    });
+
+    openModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display text-xl">${menu.name}</h3>
+          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+        </div>
+        <div class="max-h-[60vh] overflow-y-auto">${daysHtml}</div>
+        <button onclick="closeModal()" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
+          Listo
+        </button>
+      </div>
+    `);
+    lucide.createIcons();
+  }
+
+  window.pickMenuSlot = function(menuId, di, si) {
+    const m2 = STATE.menus.find(m => m.id === menuId);
+    if (!m2 || STATE.meals.length === 0) { toast('Crea comidas primero'); return; }
+    const listHtml = STATE.meals.map(m => `
+      <button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl"
+        onclick="assignMenuSlot('${menuId}',${di},${si},'${m.id}')">
+        <span class="font-medium text-sm">${m.name}</span>
+        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(mealTotals(m).kcal)} kcal</span>
+      </button>`).join('');
+    openModal(`
+      <div class="p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h3 class="font-display text-xl">Elegir comida</h3>
+          <button onclick="editMenu('${menuId}')" class="text-gray-400 hover:text-gray-600"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
+        </div>
+        <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
+        <button onclick="assignMenuSlot('${menuId}',${di},${si},null)" class="mt-3 w-full py-2 text-sm text-gray-400 hover:text-gray-600 border border-cream-300 rounded-xl">
+          Sin comida (vacío)
+        </button>
+      </div>
+    `);
+    lucide.createIcons();
+  };
+
+  window.assignMenuSlot = function(menuId, di, si, mealId) {
+    const m2 = STATE.menus.find(m => m.id === menuId);
+    if (!m2) return;
+    m2.days[di][si] = mealId;
+    saveState();
+    editMenu(menuId);
+  };
+
+  window.clearMenuSlot = function(menuId, di, si) {
+    const m2 = STATE.menus.find(m => m.id === menuId);
+    if (!m2) return;
+    m2.days[di][si] = null;
+    saveState();
+    editMenu(menuId);
+  };
+
+  renderMenuEditor();
+}
+
+/** Apply a menu template to the current week */
+function applyMenu(menuId) {
+  const menu = STATE.menus.find(m => m.id === menuId);
+  if (!menu) return;
+  const dates = weekDates(currentWeekMonday);
+  menu.days.forEach((daySlots, di) => {
+    const key = isoDate(dates[di]);
+    STATE.weekPlan[key] = { slots: [...daySlots] };
+  });
+  saveState();
+  toast(`✓ Menú "${menu.name}" aplicado a la semana`);
+  showView('dashboard');
+}
+
+// "Aplicar Menú" button in dashboard header
+$('btn-apply-menu').addEventListener('click', () => {
+  if (STATE.menus.length === 0) { toast('No tienes menús guardados'); return; }
+  const listHtml = STATE.menus.map(m => `
+    <button class="w-full text-left px-4 py-3 hover:bg-lavender-50 transition flex items-center justify-between rounded-xl"
+      onclick="applyMenu('${m.id}'); closeModal()">
+      <span class="font-medium text-sm">${m.name}</span>
+      <span class="text-xs text-gray-400">${m.mealsPerDay} comidas/día</span>
+    </button>`).join('');
+  openModal(`
+    <div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">Aplicar menú</h3>
+        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <div class="space-y-1">${listHtml}</div>
+    </div>
+  `);
+});
+
+/* ════════════════════════════════════════════════
+   SECTION 9 — MODAL ENGINE
+════════════════════════════════════════════════ */
+
+function openModal(html) {
+  $('modal-box').innerHTML = html;
+  $('modal-backdrop').classList.remove('hidden');
+  lucide.createIcons();
+}
+
+function closeModal() {
+  $('modal-backdrop').classList.add('hidden');
+  $('modal-box').innerHTML = '';
+}
+
+// Close on backdrop click
+$('modal-backdrop').addEventListener('click', e => {
+  if (e.target === $('modal-backdrop')) closeModal();
+});
+
+// Expose to global for onclick in injected HTML
+window.closeModal      = closeModal;
+window.openMealDetail  = openMealDetail;
+window.openSlotPicker  = openSlotPicker;
+window.assignSlot      = assignSlot;
+window.removeSlot      = removeSlot;
+window.addSlot         = addSlot;
+window.openEditMeal    = openEditMeal;
+window.deleteMeal      = deleteMeal;
+window.editMenu        = editMenu;
+window.deleteMenu      = deleteMenu;
+window.applyMenu       = applyMenu;
+
+/* ════════════════════════════════════════════════
+   SECTION 10 — BOOTSTRAP
+════════════════════════════════════════════════ */
+
+function init() {
+  lucide.createIcons();
+  showView('dashboard');
+}
+
+init();
+</script>
+</body>
+</html>
