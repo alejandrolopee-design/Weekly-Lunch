@@ -1,1310 +1,1117 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NutriPlan — Planificador Semanal</title>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>NutriPlan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+<script>
+tailwind.config={theme:{extend:{fontFamily:{display:['Fraunces','serif'],sans:['DM Sans','sans-serif']},
+colors:{
+  sage:{50:'#f3f7f3',100:'#e1ebe1',200:'#c2d7c2',300:'#94bb94',400:'#5f9b5f',500:'#3d7a3d',600:'#2d5e2d'},
+  peach:{50:'#fff6f2',100:'#ffe8de',200:'#ffd0bc',300:'#ffad8a',400:'#ff7a47',500:'#f05a25'},
+  lavender:{50:'#f4f2ff',100:'#ebe7ff',200:'#d8d0ff',300:'#bbb0ff',400:'#9580ff',500:'#7554f0'},
+  amber:{50:'#fffbeb',100:'#fef3c7',200:'#fde68a',300:'#fcd34d',400:'#fbbf24',500:'#f59e0b'},
+  cream:{50:'#fdfcf8',100:'#f8f4ec',200:'#f0e9d8',300:'#e4d8be',400:'#d4c49a'},
+}}}};
+</script>
+<style>
+*,*::before,*::after{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{font-family:'DM Sans',sans-serif;background:#fdfcf8;color:#2a2a2a;min-height:100vh}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#c2d7c2;border-radius:99px}
 
-  <!-- Tailwind CSS CDN -->
-  <script src="https://cdn.tailwindcss.com"></script>
+/* Nav */
+.nav-btn{position:relative;transition:color .2s}
+.nav-btn::after{content:'';position:absolute;bottom:-5px;left:0;right:0;height:2px;background:#3d7a3d;transform:scaleX(0);transform-origin:left;transition:transform .25s ease}
+.nav-btn.active{color:#3d7a3d;font-weight:600}
+.nav-btn.active::after{transform:scaleX(1)}
 
-  <!-- Lucide Icons CDN -->
-  <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
+/* Cards */
+.postit{background:#fff;border:1.5px solid #e4d8be;border-radius:16px;box-shadow:0 2px 10px rgba(0,0,0,.06);transition:transform .18s,box-shadow .18s}
+.postit:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.1)}
+.slot-empty{border:2px dashed #c2d7c2;border-radius:12px;background:#f3f7f3;cursor:pointer;transition:background .15s,border-color .15s}
+.slot-empty:hover{background:#e1ebe1;border-color:#5f9b5f}
 
-  <!-- Google Fonts: Fraunces (display) + DM Sans (body) -->
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,wght@0,300;0,500;1,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+/* Progress bars */
+.prog-wrap{height:7px;border-radius:99px;background:#e4d8be;overflow:hidden}
+.prog-fill{height:100%;border-radius:99px;transition:width .45s ease}
+.prog-green{background:linear-gradient(90deg,#5f9b5f,#94bb94)}
+.prog-orange{background:linear-gradient(90deg,#f59e0b,#fcd34d)}
+.prog-red{background:linear-gradient(90deg,#ef4444,#f87171)}
+.prog-neutral{background:linear-gradient(90deg,#9580ff,#bbb0ff)}
 
-  <script>
-    /* ─── Tailwind custom config ─── */
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { display: ['Fraunces','serif'], sans: ['DM Sans','sans-serif'] },
-          colors: {
-            sage:   { 50:'#f4f7f4', 100:'#e2ebe2', 200:'#c4d7c4', 300:'#99bb99', 400:'#6a9b6a', 500:'#4e7d4e' },
-            peach:  { 50:'#fff7f3', 100:'#ffe9e0', 200:'#ffd0bc', 300:'#ffad8e', 400:'#ff7f54', 500:'#f55f35' },
-            lavender:{ 50:'#f5f3ff', 100:'#ece8ff', 200:'#d9d3ff', 300:'#bfb3ff', 400:'#9d8cf5', 500:'#7c5fe8' },
-            cream:  { 50:'#fdfcf8', 100:'#f8f5ed', 200:'#f0ead8', 300:'#e4d9bc' },
-          }
-        }
-      }
-    }
-  </script>
+/* Tags */
+.tag{font-size:.68rem;padding:2px 7px;border-radius:99px;font-weight:600;white-space:nowrap}
+.tag-kcal{background:#ffe8de;color:#f05a25}
+.tag-prot{background:#e1ebe1;color:#2d5e2d}
+.tag-hc{background:#ebe7ff;color:#5534c8}
+.tag-fat{background:#f0e9d8;color:#8a6a3a}
+.tag-cat-desayuno{background:#fef3c7;color:#b45309}
+.tag-cat-comida{background:#e1ebe1;color:#2d5e2d}
+.tag-cat-cena{background:#ebe7ff;color:#5534c8}
+.tag-cat-snack{background:#ffe8de;color:#c2410c}
 
-  <style>
-    /* ─── Global base ─── */
-    *, *::before, *::after { box-sizing: border-box; }
-    html { scroll-behavior: smooth; }
-    body {
-      font-family: 'DM Sans', sans-serif;
-      background: #fdfcf8;
-      color: #2d2d2d;
-      min-height: 100vh;
-    }
+/* Source badges */
+.badge-basic{background:#e1ebe1;color:#3d7a3d;font-size:.62rem;padding:1px 6px;border-radius:99px;font-weight:700}
+.badge-saved{background:#ebe7ff;color:#5534c8;font-size:.62rem;padding:1px 6px;border-radius:99px;font-weight:700}
 
-    /* ─── Typography ─── */
-    .font-display { font-family: 'Fraunces', serif; }
+/* Category pill row */
+.cat-pill{border:1.5px solid #e4d8be;border-radius:99px;padding:4px 12px;font-size:.75rem;cursor:pointer;transition:all .15s;background:#fff}
+.cat-pill.active{border-color:#5f9b5f;background:#e1ebe1;color:#2d5e2d;font-weight:600}
 
-    /* ─── Scrollbar ─── */
-    ::-webkit-scrollbar { width: 6px; height: 6px; }
-    ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #c4d7c4; border-radius: 99px; }
+/* Modal */
+#modal-backdrop{backdrop-filter:blur(5px);background:rgba(30,30,30,.45)}
+input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(95,155,95,.3)}
 
-    /* ─── Nav underline animation ─── */
-    .nav-btn { position: relative; transition: color .2s; }
-    .nav-btn::after {
-      content: '';
-      position: absolute; bottom: -4px; left: 0; right: 0;
-      height: 2px; background: #4e7d4e;
-      transform: scaleX(0); transform-origin: left;
-      transition: transform .25s ease;
-    }
-    .nav-btn.active { color: #4e7d4e; font-weight: 600; }
-    .nav-btn.active::after { transform: scaleX(1); }
+/* Grid */
+#days-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:.75rem}
+@media(max-width:700px){#days-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(min-width:701px) and (max-width:1024px){#days-grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 
-    /* ─── Post-it card ─── */
-    .postit {
-      background: #fff;
-      border: 1.5px solid #e4d9bc;
-      border-radius: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,.06);
-      transition: transform .18s, box-shadow .18s;
-    }
-    .postit:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,.1); }
-    .postit-slot {
-      border: 2px dashed #c4d7c4;
-      border-radius: 12px;
-      background: #f4f7f4;
-      transition: background .2s, border-color .2s;
-      cursor: pointer;
-    }
-    .postit-slot:hover { background: #e2ebe2; border-color: #6a9b6a; }
+/* Animations */
+.fade-in{animation:fadeIn .28s ease both}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+#toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:#2a2a2a;color:#fff;padding:9px 18px;border-radius:99px;font-size:.83rem;pointer-events:none;opacity:0;transition:opacity .22s;z-index:9999;white-space:nowrap}
+#toast.show{opacity:1}
 
-    /* ─── Progress bar ─── */
-    .prog-bar {
-      height: 8px; border-radius: 99px;
-      background: #e4d9bc; overflow: hidden;
-    }
-    .prog-fill {
-      height: 100%; border-radius: 99px;
-      transition: width .4s ease;
-    }
+/* Search result cards */
+.ing-card{border-radius:11px;padding:7px 9px;display:flex;align-items:center;gap:8px;font-size:.73rem}
+.ing-card-basic{background:#f3f7f3}
+.ing-card-saved{background:#f4f2ff}
 
-    /* ─── Modal backdrop ─── */
-    #modal-backdrop {
-      backdrop-filter: blur(6px);
-      background: rgba(45,45,45,.4);
-      transition: opacity .2s;
-    }
-
-    /* ─── Input focus ring ─── */
-    input:focus, select:focus, textarea:focus {
-      outline: none;
-      box-shadow: 0 0 0 3px rgba(106,155,106,.3);
-    }
-
-    /* ─── Tag ─── */
-    .macro-tag {
-      font-size: .72rem;
-      padding: 2px 8px;
-      border-radius: 99px;
-      font-weight: 500;
-    }
-
-    /* ─── Carousel scroll (days) ─── */
-    #days-carousel {
-      display: grid;
-      grid-template-columns: repeat(7, minmax(0, 1fr));
-      gap: 1rem;
-    }
-    @media (max-width: 768px) {
-      #days-carousel { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-    }
-
-    /* ─── Animated fade-in ─── */
-    .fade-in { animation: fadeIn .3s ease both; }
-    @keyframes fadeIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:none; } }
-
-    /* ─── Toast ─── */
-    #toast {
-      position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%);
-      background: #2d2d2d; color: #fff;
-      padding: 10px 20px; border-radius: 99px;
-      font-size: .85rem; pointer-events: none;
-      opacity: 0; transition: opacity .25s;
-      z-index: 9999; white-space: nowrap;
-    }
-    #toast.show { opacity: 1; }
-  </style>
+/* Calorie ring feedback colors */
+.day-ok .day-header-dot{background:#5f9b5f}
+.day-low .day-header-dot{background:#f59e0b}
+.day-over .day-header-dot{background:#ef4444}
+</style>
 </head>
 <body>
 
-<!-- ══════════════════════════════════════════
-     HEADER
-══════════════════════════════════════════ -->
-<header class="sticky top-0 z-40 bg-cream-50/90 backdrop-blur border-b border-cream-300">
-  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-4">
-    <!-- Logo -->
+<!-- ═══ HEADER ═══ -->
+<header class="sticky top-0 z-40 bg-cream-50/95 backdrop-blur border-b border-cream-300">
+  <div class="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
     <div class="flex items-center gap-2">
-      <div class="w-8 h-8 bg-sage-400 rounded-xl flex items-center justify-center">
-        <i data-lucide="salad" class="w-4 h-4 text-white"></i>
+      <div class="w-8 h-8 bg-sage-400 rounded-xl flex items-center justify-center shadow-sm">
+        <i data-lucide="leaf" class="w-4 h-4 text-white"></i>
       </div>
-      <span class="font-display text-xl font-medium text-sage-500">NutriPlan</span>
+      <span class="font-display text-xl font-medium text-sage-600">NutriPlan</span>
     </div>
-
-    <!-- Nav tabs -->
-    <nav class="flex items-center gap-6 text-sm text-gray-500">
+    <nav class="flex items-center gap-5 text-sm text-gray-500">
       <button class="nav-btn active" data-view="dashboard">Dashboard</button>
       <button class="nav-btn" data-view="meals">Mis Comidas</button>
-      <button class="nav-btn" data-view="menus">Mis Menús</button>
+      <button class="nav-btn" data-view="menus">Menús</button>
       <button class="nav-btn" data-view="profile">Perfil</button>
     </nav>
-
-    <!-- Today kcal badge -->
-    <div id="header-kcal" class="hidden md:flex items-center gap-1 text-xs bg-sage-100 text-sage-500 px-3 py-1 rounded-full font-medium">
+    <div id="header-kcal" class="hidden sm:flex items-center gap-1 text-xs bg-sage-100 text-sage-600 px-3 py-1 rounded-full font-semibold">
       <i data-lucide="flame" class="w-3 h-3"></i>
-      <span id="header-kcal-text">— kcal hoy</span>
+      <span id="header-kcal-text">— kcal</span>
     </div>
   </div>
 </header>
 
-<!-- ══════════════════════════════════════════
-     MAIN VIEWS
-══════════════════════════════════════════ -->
-<main class="max-w-7xl mx-auto px-4 py-6">
+<!-- ═══ MAIN ═══ -->
+<main class="max-w-7xl mx-auto px-4 py-5">
 
-  <!-- ─── VIEW: DASHBOARD ─── -->
+  <!-- VIEW: DASHBOARD -->
   <section id="view-dashboard" class="fade-in">
-    <!-- Week navigation -->
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <div>
-        <h1 class="font-display text-3xl font-light">Semana actual</h1>
+        <h1 class="font-display text-3xl font-light leading-tight">Semana actual</h1>
         <p id="week-label" class="text-sm text-gray-400 mt-0.5"></p>
       </div>
-      <div class="flex items-center gap-2">
-        <button id="btn-prev-week" class="w-9 h-9 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition">
-          <i data-lucide="chevron-left" class="w-4 h-4"></i>
-        </button>
+      <div class="flex flex-wrap items-center gap-2">
+        <button id="btn-prev-week" class="w-8 h-8 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition"><i data-lucide="chevron-left" class="w-4 h-4"></i></button>
         <button id="btn-today" class="text-xs px-3 py-1.5 rounded-xl border border-cream-300 hover:bg-cream-100 transition">Hoy</button>
-        <button id="btn-next-week" class="w-9 h-9 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition">
-          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        <button id="btn-next-week" class="w-8 h-8 rounded-xl border border-cream-300 flex items-center justify-center hover:bg-cream-100 transition"><i data-lucide="chevron-right" class="w-4 h-4"></i></button>
+        <button id="btn-shopping-list" class="text-xs px-3 py-2 bg-amber-400 text-white rounded-xl hover:bg-amber-500 transition flex items-center gap-1.5 font-medium">
+          <i data-lucide="shopping-cart" class="w-3.5 h-3.5"></i> Lista compra
         </button>
-        <button id="btn-apply-menu" class="ml-2 text-xs px-4 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5">
+        <button id="btn-apply-menu" class="text-xs px-3 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5 font-medium">
           <i data-lucide="layout-template" class="w-3.5 h-3.5"></i> Aplicar Menú
         </button>
       </div>
     </div>
-
-    <!-- Days grid -->
-    <div id="days-carousel" class="mb-8"></div>
+    <div id="days-grid" class="mb-8"></div>
   </section>
 
-  <!-- ─── VIEW: MIS COMIDAS ─── -->
+  <!-- VIEW: MIS COMIDAS -->
   <section id="view-meals" class="fade-in hidden">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex flex-wrap items-center justify-between gap-3 mb-5">
       <h1 class="font-display text-3xl font-light">Mis Comidas</h1>
-      <button id="btn-new-meal" class="text-sm px-4 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5">
+      <button id="btn-new-meal" class="text-sm px-4 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition flex items-center gap-1.5 font-medium">
         <i data-lucide="plus" class="w-4 h-4"></i> Nueva Comida
       </button>
+    </div>
+    <!-- Category filter -->
+    <div class="flex flex-wrap gap-2 mb-5" id="meal-cat-filter">
+      <button class="cat-pill active" data-cat="all">Todas</button>
+      <button class="cat-pill" data-cat="desayuno">🌅 Desayuno</button>
+      <button class="cat-pill" data-cat="comida">🍽️ Comida</button>
+      <button class="cat-pill" data-cat="cena">🌙 Cena</button>
+      <button class="cat-pill" data-cat="snack">🍎 Snack</button>
     </div>
     <div id="meals-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
   </section>
 
-  <!-- ─── VIEW: MIS MENÚS ─── -->
+  <!-- VIEW: MENÚS -->
   <section id="view-menus" class="fade-in hidden">
-    <div class="flex items-center justify-between mb-6">
+    <div class="flex items-center justify-between mb-5">
       <h1 class="font-display text-3xl font-light">Mis Menús</h1>
-      <button id="btn-new-menu" class="text-sm px-4 py-2 bg-lavender-400 text-white rounded-xl hover:bg-lavender-500 transition flex items-center gap-1.5">
+      <button id="btn-new-menu" class="text-sm px-4 py-2 bg-lavender-400 text-white rounded-xl hover:bg-lavender-500 transition flex items-center gap-1.5 font-medium">
         <i data-lucide="plus" class="w-4 h-4"></i> Nuevo Menú
       </button>
     </div>
     <div id="menus-list" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4"></div>
   </section>
 
-  <!-- ─── VIEW: PERFIL ─── -->
-  <section id="view-profile" class="fade-in hidden max-w-2xl mx-auto">
-    <h1 class="font-display text-3xl font-light mb-6">Perfil & Objetivos</h1>
-
-    <!-- Harris-Benedict form -->
-    <div class="postit p-6 mb-6">
-      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+  <!-- VIEW: PERFIL -->
+  <section id="view-profile" class="fade-in hidden max-w-xl mx-auto">
+    <h1 class="font-display text-3xl font-light mb-5">Perfil &amp; Objetivos</h1>
+    <div class="postit p-6 mb-5">
+      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2 text-sm">
         <i data-lucide="user-round" class="w-4 h-4 text-sage-400"></i> Datos físicos
       </h2>
-      <div class="grid grid-cols-2 gap-4">
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Edad</label>
-          <input id="p-age" type="number" min="10" max="120" placeholder="30"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Sexo</label>
+      <div class="grid grid-cols-2 gap-3">
+        <div><label class="text-xs text-gray-400 mb-1 block">Edad</label>
+          <input id="p-age" type="number" min="10" max="120" placeholder="30" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
+        <div><label class="text-xs text-gray-400 mb-1 block">Sexo</label>
           <select id="p-sex" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50">
-            <option value="male">Hombre</option>
-            <option value="female">Mujer</option>
-          </select>
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Peso (kg)</label>
-          <input id="p-weight" type="number" min="30" max="300" placeholder="70"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Altura (cm)</label>
-          <input id="p-height" type="number" min="100" max="250" placeholder="170"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
-        <div class="col-span-2">
-          <label class="text-xs text-gray-400 mb-1 block">Nivel de actividad</label>
+            <option value="male">Hombre</option><option value="female">Mujer</option>
+          </select></div>
+        <div><label class="text-xs text-gray-400 mb-1 block">Peso (kg)</label>
+          <input id="p-weight" type="number" min="30" max="300" placeholder="70" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
+        <div><label class="text-xs text-gray-400 mb-1 block">Altura (cm)</label>
+          <input id="p-height" type="number" min="100" max="250" placeholder="170" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
+        <div class="col-span-2"><label class="text-xs text-gray-400 mb-1 block">Nivel de actividad</label>
           <select id="p-activity" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50">
-            <option value="1.2">Sedentario (sin ejercicio)</option>
+            <option value="1.2">Sedentario</option>
             <option value="1.375">Ligero (1-3 días/semana)</option>
             <option value="1.55" selected>Moderado (3-5 días/semana)</option>
             <option value="1.725">Activo (6-7 días/semana)</option>
-            <option value="1.9">Muy activo (doble sesión)</option>
-          </select>
-        </div>
+            <option value="1.9">Muy activo</option>
+          </select></div>
       </div>
-      <button id="btn-calc-tdee" class="mt-4 w-full py-2 bg-sage-400 text-white rounded-xl text-sm font-medium hover:bg-sage-500 transition">
-        Calcular objetivo calórico
-      </button>
-      <div id="tdee-result" class="mt-4 hidden bg-sage-50 border border-sage-200 rounded-xl p-4 text-sm space-y-1">
-        <p class="font-semibold text-sage-600" id="tdee-text"></p>
-        <p class="text-gray-400 text-xs" id="bmr-text"></p>
+      <button id="btn-calc-tdee" class="mt-4 w-full py-2 bg-sage-400 text-white rounded-xl text-sm font-semibold hover:bg-sage-500 transition">Calcular objetivo calórico</button>
+      <div id="tdee-result" class="mt-3 hidden bg-sage-50 border border-sage-200 rounded-xl p-4 text-sm">
+        <p class="font-bold text-sage-600" id="tdee-text"></p>
+        <p class="text-gray-400 text-xs mt-0.5" id="bmr-text"></p>
       </div>
     </div>
-
-    <!-- Macro targets -->
     <div class="postit p-6">
-      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2">
+      <h2 class="font-semibold text-gray-700 mb-4 flex items-center gap-2 text-sm">
         <i data-lucide="chart-pie" class="w-4 h-4 text-lavender-400"></i> Distribución de Macros
       </h2>
-      <p class="text-xs text-gray-400 mb-4">Los porcentajes deben sumar 100%.</p>
-      <div class="grid grid-cols-3 gap-4">
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Carbos (%)</label>
-          <input id="p-carbs-pct" type="number" min="0" max="100" value="40"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Proteína (%)</label>
-          <input id="p-prot-pct" type="number" min="0" max="100" value="30"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
-        <div>
-          <label class="text-xs text-gray-400 mb-1 block">Grasas (%)</label>
-          <input id="p-fat-pct" type="number" min="0" max="100" value="30"
-            class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-        </div>
+      <p class="text-xs text-gray-400 mb-3">Los porcentajes deben sumar 100%.</p>
+      <div class="grid grid-cols-3 gap-3">
+        <div><label class="text-xs text-gray-400 mb-1 block">Carbos (%)</label>
+          <input id="p-carbs-pct" type="number" min="0" max="100" value="50" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
+        <div><label class="text-xs text-gray-400 mb-1 block">Proteína (%)</label>
+          <input id="p-prot-pct" type="number" min="0" max="100" value="25" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
+        <div><label class="text-xs text-gray-400 mb-1 block">Grasas (%)</label>
+          <input id="p-fat-pct" type="number" min="0" max="100" value="25" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/></div>
       </div>
-      <button id="btn-save-profile" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
-        Guardar perfil
-      </button>
+      <button id="btn-save-profile" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-semibold hover:bg-lavender-500 transition">Guardar perfil</button>
     </div>
   </section>
 
 </main>
 
-<!-- ══════════════════════════════════════════
-     TOAST
-══════════════════════════════════════════ -->
 <div id="toast"></div>
-
-<!-- ══════════════════════════════════════════
-     MODAL BACKDROP
-══════════════════════════════════════════ -->
 <div id="modal-backdrop" class="fixed inset-0 z-50 flex items-center justify-center p-4 hidden">
-  <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto relative">
-    <!-- Injected dynamically -->
-  </div>
+  <div id="modal-box" class="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[92vh] overflow-y-auto"></div>
 </div>
 
-
-<!-- ══════════════════════════════════════════
+<!-- ═══════════════════════════════════════════
      JAVASCRIPT
-══════════════════════════════════════════ -->
+═══════════════════════════════════════════ -->
 <script>
-/* ════════════════════════════════════════════════
-   SECTION 1 — STATE & STORAGE
-   Centralised data model. Everything persisted
-   in localStorage under the key "nutriplan_v1".
-════════════════════════════════════════════════ */
+window.addEventListener('load', function() {
 
-const STORAGE_KEY = 'nutriplan_v1';
+/* ═══════════════════════════════════════════
+   § 1 — BASE DE DATOS LOCAL (100 alimentos)
+   Todos los valores son por 100 g EN CRUDO
+   Campos: n=nombre, kcal, p=proteína, hc=carbohidratos, g=grasas, cat=categoría
+═══════════════════════════════════════════ */
+const BASIC_FOODS = [
+  // ── LEGUMBRES ──
+  {n:"Lenteja Castellana (Cruda)",    kcal:310, p:24,  hc:48, g:1.5,  cat:"legumbres"},
+  {n:"Garbanzo Pedrosillano (Crudo)", kcal:340, p:20,  hc:50, g:5,    cat:"legumbres"},
+  {n:"Alubia Blanca (Cruda)",         kcal:305, p:21,  hc:45, g:1.5,  cat:"legumbres"},
+  {n:"Soja Texturizada Fina",         kcal:360, p:50,  hc:15, g:1.5,  cat:"legumbres"},
+  {n:"Soja Texturizada Gruesa",       kcal:360, p:50,  hc:15, g:1.5,  cat:"legumbres"},
+  {n:"Lenteja Roja (Cruda)",          kcal:330, p:24,  hc:50, g:1.5,  cat:"legumbres"},
+  {n:"Guisantes Congelados",          kcal:80,  p:5.4, hc:14, g:0.4,  cat:"legumbres"},
+  {n:"Edamame Congelado",             kcal:122, p:11,  hc:10, g:5,    cat:"legumbres"},
 
-/** Load the full app state from localStorage */
-function loadState() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || defaultState();
-  } catch {
-    return defaultState();
-  }
+  // ── CEREALES Y TUBÉRCULOS ──
+  {n:"Arroz Integral (Crudo)",        kcal:350, p:7.5, hc:72, g:2.5,  cat:"cereales"},
+  {n:"Arroz Basmati (Crudo)",         kcal:355, p:8.5, hc:77, g:1,    cat:"cereales"},
+  {n:"Pasta Integral (Cruda)",        kcal:340, p:12,  hc:65, g:2,    cat:"cereales"},
+  {n:"Pasta de Trigo (Cruda)",        kcal:360, p:13,  hc:70, g:1.5,  cat:"cereales"},
+  {n:"Cuscús (Crudo)",                kcal:355, p:12,  hc:70, g:1.5,  cat:"cereales"},
+  {n:"Quinoa (Cruda)",                kcal:370, p:14,  hc:60, g:6,    cat:"cereales"},
+  {n:"Avena en Copos (Hacendado)",    kcal:367, p:14,  hc:56, g:7,    cat:"cereales"},
+  {n:"Harina de Avena (HSN)",         kcal:360, p:13,  hc:60, g:6.5,  cat:"cereales"},
+  {n:"Harina de Trigo Sarraceno",     kcal:335, p:13,  hc:65, g:3.5,  cat:"cereales"},
+  {n:"Pan de Centeno (Lidl)",         kcal:259, p:8.5, hc:45, g:3.3,  cat:"cereales"},
+  {n:"Tortitas de Arroz",             kcal:381, p:8,   hc:81, g:3,    cat:"cereales"},
+  {n:"Patata (Cruda)",                kcal:77,  p:2,   hc:17, g:0.1,  cat:"cereales"},
+  {n:"Batata/Boniato (Crudo)",        kcal:86,  p:1.6, hc:20, g:0.1,  cat:"cereales"},
+  {n:"Maíz Dulce en Lata",            kcal:86,  p:3.2, hc:17, g:1.2,  cat:"cereales"},
+
+  // ── PROTEÍNAS VEGETALES ──
+  {n:"Evowhey Protein (HSN)",         kcal:383, p:80,  hc:6,  g:5,    cat:"proteinas"},
+  {n:"Proteína de Soja (HSN)",        kcal:370, p:88,  hc:1,  g:2,    cat:"proteinas"},
+  {n:"Proteína de Guisante (HSN)",    kcal:375, p:82,  hc:5,  g:2.5,  cat:"proteinas"},
+  {n:"Tofu Firme (Hacendado)",        kcal:110, p:12,  hc:1.5,g:6,    cat:"proteinas"},
+  {n:"Tofu Ahumado (Lidl)",           kcal:140, p:15,  hc:2,  g:8,    cat:"proteinas"},
+  {n:"Seitán (Lidl/Aldi)",            kcal:107, p:24,  hc:2,  g:0.1,  cat:"proteinas"},
+  {n:"Tempeh Natural",                kcal:193, p:19,  hc:9,  g:11,   cat:"proteinas"},
+  {n:"Clara de Huevo Líquida",        kcal:50,  p:11,  hc:0.7,g:0.5,  cat:"proteinas"},
+  {n:"Huevo Entero (L)",              kcal:155, p:13,  hc:1.1,g:11,   cat:"proteinas"},
+
+  // ── LÁCTEOS ──
+  {n:"Queso Batido 0% (Hacendado)",   kcal:46,  p:8,   hc:3.5,g:0.1,  cat:"lacteos"},
+  {n:"Skyr Natural (Lidl)",           kcal:62,  p:11,  hc:3.5,g:0.2,  cat:"lacteos"},
+  {n:"Yogur Griego 0% (Hacendado)",   kcal:65,  p:10,  hc:4,  g:0.3,  cat:"lacteos"},
+  {n:"Yogur Natural Entero",          kcal:59,  p:3.5, hc:4.7,g:3.2,  cat:"lacteos"},
+  {n:"Yogur de Soja (Hacendado)",     kcal:42,  p:3.9, hc:2.3,g:2.1,  cat:"lacteos"},
+  {n:"Queso Cottage (Lidl)",          kcal:98,  p:11,  hc:3,  g:4.5,  cat:"lacteos"},
+  {n:"Queso Mozzarella Light",        kcal:175, p:18,  hc:2,  g:10,   cat:"lacteos"},
+  {n:"Leche Semidesnatada",           kcal:46,  p:3.4, hc:5,  g:1.5,  cat:"lacteos"},
+
+  // ── BEBIDAS VEGETALES ──
+  {n:"Bebida de Soja s/a (Hacendado)",kcal:33,  p:3.3, hc:0.2,g:1.8,  cat:"bebidas"},
+  {n:"Bebida de Avena s/a (Lidl)",    kcal:44,  p:0.6, hc:8.5,g:0.8,  cat:"bebidas"},
+  {n:"Bebida de Almendra s/a",        kcal:24,  p:0.9, hc:2.7,g:1.1,  cat:"bebidas"},
+  {n:"Bebida de Arroz s/a",           kcal:47,  p:0.3, hc:10, g:0.6,  cat:"bebidas"},
+
+  // ── VERDURAS ──
+  {n:"Brócoli (Crudo)",               kcal:34,  p:2.8, hc:4,  g:0.4,  cat:"verduras"},
+  {n:"Espinacas Frescas",             kcal:23,  p:2.9, hc:0.4,g:0.4,  cat:"verduras"},
+  {n:"Espinacas Congeladas",          kcal:28,  p:3,   hc:1,  g:0.5,  cat:"verduras"},
+  {n:"Calabacín (Crudo)",             kcal:17,  p:1.2, hc:3,  g:0.3,  cat:"verduras"},
+  {n:"Pimiento Rojo",                 kcal:33,  p:1,   hc:6,  g:0.3,  cat:"verduras"},
+  {n:"Pimiento Verde",                kcal:20,  p:0.9, hc:4,  g:0.2,  cat:"verduras"},
+  {n:"Judía Verde (Cruda)",           kcal:31,  p:1.8, hc:4,  g:0.2,  cat:"verduras"},
+  {n:"Zanahoria (Cruda)",             kcal:41,  p:0.9, hc:10, g:0.2,  cat:"verduras"},
+  {n:"Champiñones (Crudos)",          kcal:22,  p:3,   hc:3,  g:0.3,  cat:"verduras"},
+  {n:"Setas Portobello",              kcal:26,  p:2.5, hc:4,  g:0.3,  cat:"verduras"},
+  {n:"Tomate Natural",                kcal:18,  p:0.9, hc:3.9,g:0.2,  cat:"verduras"},
+  {n:"Tomate Triturado (Hacendado)",  kcal:32,  p:1.5, hc:5,  g:0.3,  cat:"verduras"},
+  {n:"Cebolla",                       kcal:40,  p:1.1, hc:9,  g:0.1,  cat:"verduras"},
+  {n:"Ajo",                           kcal:149, p:6.4, hc:33, g:0.5,  cat:"verduras"},
+  {n:"Lechuga Romana",                kcal:17,  p:1.2, hc:3,  g:0.3,  cat:"verduras"},
+  {n:"Pepino",                        kcal:16,  p:0.7, hc:3.6,g:0.1,  cat:"verduras"},
+  {n:"Berenjena",                     kcal:25,  p:1,   hc:5.7,g:0.2,  cat:"verduras"},
+  {n:"Coliflor (Cruda)",              kcal:25,  p:1.9, hc:5,  g:0.3,  cat:"verduras"},
+  {n:"Col Kale (Cruda)",              kcal:49,  p:4.3, hc:9,  g:0.9,  cat:"verduras"},
+  {n:"Maíz Congelado",               kcal:86,  p:3.2, hc:19, g:1.2,  cat:"verduras"},
+
+  // ── FRUTAS ──
+  {n:"Plátano",                       kcal:89,  p:1.1, hc:23, g:0.3,  cat:"frutas"},
+  {n:"Manzana",                       kcal:52,  p:0.3, hc:14, g:0.2,  cat:"frutas"},
+  {n:"Naranja",                       kcal:47,  p:0.9, hc:12, g:0.1,  cat:"frutas"},
+  {n:"Fresas",                        kcal:32,  p:0.7, hc:7.7,g:0.3,  cat:"frutas"},
+  {n:"Arándanos",                     kcal:57,  p:0.7, hc:14, g:0.3,  cat:"frutas"},
+  {n:"Mango",                         kcal:60,  p:0.8, hc:15, g:0.4,  cat:"frutas"},
+  {n:"Kiwi",                          kcal:61,  p:1.1, hc:15, g:0.5,  cat:"frutas"},
+  {n:"Melocotón",                     kcal:39,  p:0.9, hc:10, g:0.3,  cat:"frutas"},
+  {n:"Pera",                          kcal:57,  p:0.4, hc:15, g:0.1,  cat:"frutas"},
+  {n:"Piña Natural",                  kcal:50,  p:0.5, hc:13, g:0.1,  cat:"frutas"},
+  {n:"Dátiles Medjool",               kcal:277, p:1.8, hc:75, g:0.2,  cat:"frutas"},
+
+  // ── FRUTOS SECOS Y GRASAS ──
+  {n:"Aceite de Oliva VE",            kcal:884, p:0,   hc:0,  g:100,  cat:"grasas"},
+  {n:"Crema de Cacahuete (Hacendado)",kcal:618, p:24,  hc:7,  g:50,   cat:"grasas"},
+  {n:"Nueces Peladas",                kcal:654, p:15,  hc:14, g:65,   cat:"grasas"},
+  {n:"Almendras Crudas",              kcal:579, p:21,  hc:22, g:50,   cat:"grasas"},
+  {n:"Anacardos Crudos",              kcal:553, p:18,  hc:30, g:44,   cat:"grasas"},
+  {n:"Semillas de Chía",              kcal:486, p:17,  hc:42, g:31,   cat:"grasas"},
+  {n:"Semillas de Lino",              kcal:534, p:18,  hc:29, g:42,   cat:"grasas"},
+  {n:"Semillas de Girasol",           kcal:584, p:21,  hc:20, g:51,   cat:"grasas"},
+  {n:"Tahini (Crema de Sésamo)",      kcal:595, p:17,  hc:21, g:54,   cat:"grasas"},
+  {n:"Aguacate",                      kcal:160, p:2,   hc:9,  g:15,   cat:"grasas"},
+  {n:"Coco Rallado (sin azúcar)",     kcal:660, p:6.9, hc:7,  g:64,   cat:"grasas"},
+
+  // ── OTROS / CONDIMENTOS ──
+  {n:"Levadura Nutricional",          kcal:325, p:45,  hc:34, g:5,    cat:"otros"},
+  {n:"Miso (Pasta)",                  kcal:199, p:12,  hc:26, g:6,    cat:"otros"},
+  {n:"Salsa de Soja (Tamari)",        kcal:60,  p:10,  hc:5,  g:0,    cat:"otros"},
+  {n:"Hummus Casero",                 kcal:177, p:8,   hc:14, g:10,   cat:"otros"},
+  {n:"Cacao Puro en Polvo",           kcal:228, p:20,  hc:10, g:12,   cat:"otros"},
+  {n:"Canela en Polvo",               kcal:247, p:4,   hc:81, g:1.2,  cat:"otros"},
+  {n:"Maicena",                       kcal:381, p:0.3, hc:91, g:0.1,  cat:"otros"},
+  {n:"Miel",                          kcal:304, p:0.3, hc:82, g:0,    cat:"otros"},
+];
+
+/* ═══════════════════════════════════════════
+   § 2 — STATE & STORAGE
+═══════════════════════════════════════════ */
+const SK = 'nutriplan_v2';
+function defaultState(){return{
+  profile:{age:null,sex:'male',weight:null,height:null,activity:1.55,tdee:null,bmr:null,carbsPct:50,protPct:25,fatPct:25},
+  customIngredients:[],
+  meals:[],
+  weekPlan:{},
+  menus:[]
+};}
+function loadState(){try{return JSON.parse(localStorage.getItem(SK))||defaultState();}catch{return defaultState();}}
+let S=loadState();
+function save(){localStorage.setItem(SK,JSON.stringify(S));}
+
+/* ═══════════════════════════════════════════
+   § 3 — UTILIDADES
+═══════════════════════════════════════════ */
+const $=id=>document.getElementById(id);
+const uid=()=>crypto.randomUUID?crypto.randomUUID():Math.random().toString(36).slice(2);
+const fmt=n=>Number.isFinite(n)?Math.round(n):0;
+const isoDate=d=>d.toISOString().split('T')[0];
+function toast(msg,dur=2500){const el=$('toast');el.textContent=msg;el.classList.add('show');setTimeout(()=>el.classList.remove('show'),dur);}
+const esc=s=>String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/\n/g,' ');
+
+function weekMonday(d=new Date()){
+  const day=d.getDay(),diff=day===0?-6:1-day;
+  const m=new Date(d);m.setDate(d.getDate()+diff);m.setHours(0,0,0,0);return m;
+}
+const weekDates=mon=>Array.from({length:7},(_,i)=>{const d=new Date(mon);d.setDate(mon.getDate()+i);return d;});
+const DAY_NAMES=['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
+const MONTH_NAMES=['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
+
+const mealTotals=meal=>(meal.ingredients||[]).reduce(
+  (r,i)=>({kcal:r.kcal+i.kcal,prot:r.prot+i.prot,carbs:r.carbs+i.carbs,fat:r.fat+i.fat}),
+  {kcal:0,prot:0,carbs:0,fat:0}
+);
+const getMeal=id=>S.meals.find(m=>m.id===id);
+
+const CAT_LABELS={desayuno:'🌅 Desayuno',comida:'🍽️ Comida',cena:'🌙 Cena',snack:'🍎 Snack'};
+const CAT_COLORS={desayuno:'tag-cat-desayuno',comida:'tag-cat-comida',cena:'tag-cat-cena',snack:'tag-cat-snack'};
+
+function refreshUI(){if(window.lucide){try{lucide.createIcons();}catch(e){}}}
+
+/* ═══════════════════════════════════════════
+   § 4 — BUSCADOR LOCAL (2 niveles)
+═══════════════════════════════════════════ */
+function searchLocal(q){
+  const lq=q.toLowerCase();
+  const basic=BASIC_FOODS.filter(f=>f.n.toLowerCase().includes(lq));
+  const custom=S.customIngredients.filter(c=>c.name.toLowerCase().includes(lq));
+  return{basic,custom};
 }
 
-/** Default empty state */
-function defaultState() {
-  return {
-    profile: {
-      age: null, sex: 'male', weight: null, height: null,
-      activity: 1.55, tdee: null, bmr: null,
-      carbsPct: 40, protPct: 30, fatPct: 30
-    },
-    // Custom ingredients saved by user (fallback manual)
-    customIngredients: [], // { id, name, kcalPer100, protPer100, carbsPer100, fatPer100 }
-    // Saved meal recipes
-    meals: [], // { id, name, ingredients: [{ingredientId|name, grams, kcal, prot, carbs, fat}] }
-    // Weekly plan: keys are ISO date strings (yyyy-mm-dd)
-    // each day: { slots: [ mealId | null ] }
-    weekPlan: {},
-    // Menu templates
-    menus: [] // { id, name, mealsPerDay, days: [ [mealId|null, ...], ... ] }  7 days × mealsPerDay
-  };
-}
-
-let STATE = loadState();
-
-/** Persist current state */
-function saveState() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(STATE));
-}
-
-/* ════════════════════════════════════════════════
-   SECTION 2 — UTILITIES
-════════════════════════════════════════════════ */
-
-const $ = id => document.getElementById(id);
-const uid = () => crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).slice(2);
-
-/** Format a number to 1 decimal, never showing .0 when not needed */
-const fmt = n => Number.isFinite(n) ? Math.round(n) : 0;
-
-/** Show a brief toast message */
-function toast(msg, duration = 2500) {
-  const el = $('toast');
-  el.textContent = msg;
-  el.classList.add('show');
-  setTimeout(() => el.classList.remove('show'), duration);
-}
-
-/** Get ISO date string from a Date object */
-function isoDate(d) {
-  return d.toISOString().split('T')[0];
-}
-
-/** Get Monday of the week containing date d */
-function weekMonday(d = new Date()) {
-  const day = d.getDay(); // 0 = Sunday
-  const diff = (day === 0 ? -6 : 1 - day);
-  const monday = new Date(d);
-  monday.setDate(d.getDate() + diff);
-  monday.setHours(0,0,0,0);
-  return monday;
-}
-
-/** Array of 7 Date objects starting from monday */
-function weekDates(monday) {
-  return Array.from({length:7}, (_,i) => {
-    const d = new Date(monday);
-    d.setDate(monday.getDate() + i);
-    return d;
+function buildIngResultsHTML(basic,custom){
+  let html='';
+  custom.forEach((c,i)=>{
+    const id='c-'+i;
+    const safe=esc(c.name);
+    html+=`<div class="ing-card ing-card-saved">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 mb-0.5"><span class="badge-saved">Mis alimentos</span>
+          <span class="font-medium text-gray-700 truncate">${c.name}</span></div>
+        <div class="text-gray-400">${c.kcalPer100} kcal &middot; ${c.protPer100}g P &middot; ${c.carbsPer100}g HC &middot; ${c.fatPer100}g G <span class="text-gray-300">/ 100g</span></div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <input type="number" min="1" value="100" id="g-${id}" class="w-14 border border-cream-300 rounded-lg px-2 py-1 bg-white text-xs"/>
+        <button onclick="window.addIngFromSearch({name:'${safe}',kcalPer100:${c.kcalPer100},protPer100:${c.protPer100},carbsPer100:${c.carbsPer100},fatPer100:${c.fatPer100}},+document.getElementById('g-${id}').value)"
+          class="px-2 py-1 bg-lavender-400 text-white rounded-lg hover:bg-lavender-500 transition font-bold text-sm">+</button>
+      </div></div>`;
   });
-}
-
-const DAY_NAMES = ['Lunes','Martes','Miércoles','Jueves','Viernes','Sábado','Domingo'];
-const MONTH_NAMES = ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'];
-
-/** Sum macros of a meal object */
-function mealTotals(meal) {
-  const r = { kcal:0, prot:0, carbs:0, fat:0 };
-  (meal.ingredients || []).forEach(ing => {
-    r.kcal  += ing.kcal  || 0;
-    r.prot  += ing.prot  || 0;
-    r.carbs += ing.carbs || 0;
-    r.fat   += ing.fat   || 0;
+  basic.forEach((f,i)=>{
+    const id='b-'+i;
+    const safe=esc(f.n);
+    html+=`<div class="ing-card ing-card-basic">
+      <div class="flex-1 min-w-0">
+        <div class="flex items-center gap-1.5 mb-0.5"><span class="badge-basic">Básico</span>
+          <span class="font-medium text-gray-700 truncate">${f.n}</span></div>
+        <div class="text-gray-400">${f.kcal} kcal &middot; ${f.p}g P &middot; ${f.hc}g HC &middot; ${f.g}g G <span class="text-gray-300">/ 100g</span></div>
+      </div>
+      <div class="flex items-center gap-1 shrink-0">
+        <input type="number" min="1" value="100" id="g-${id}" class="w-14 border border-cream-300 rounded-lg px-2 py-1 bg-white text-xs"/>
+        <button onclick="window.addIngFromSearch({name:'${safe}',kcalPer100:${f.kcal},protPer100:${f.p},carbsPer100:${f.hc},fatPer100:${f.g}},+document.getElementById('g-${id}').value)"
+          class="px-2 py-1 bg-sage-400 text-white rounded-lg hover:bg-sage-500 transition font-bold text-sm">+</button>
+      </div></div>`;
   });
-  return r;
+  return html||'<p class="text-xs text-gray-400 px-1">Sin resultados. Prueba el formulario manual.</p>';
 }
 
-/** Find a meal by id */
-const getMeal = id => STATE.meals.find(m => m.id === id);
+window.searchIngredient=function(){
+  const q=($('ing-search')?.value||'').trim();
+  const el=$('ing-results');
+  if(!el)return;
+  if(!q){el.innerHTML='';return;}
+  const{basic,custom}=searchLocal(q);
+  el.innerHTML=buildIngResultsHTML(basic,custom);
+  refreshUI();
+};
 
-/* ════════════════════════════════════════════════
-   SECTION 3 — NAVIGATION
-════════════════════════════════════════════════ */
-
-let currentView = 'dashboard';
-
-function showView(name) {
-  ['dashboard','meals','menus','profile'].forEach(v => {
-    $(`view-${v}`).classList.toggle('hidden', v !== name);
-    $(`view-${v}`).classList.toggle('fade-in', v === name);
-  });
-  document.querySelectorAll('.nav-btn').forEach(btn => {
-    btn.classList.toggle('active', btn.dataset.view === name);
-  });
-  currentView = name;
-  if (name === 'dashboard') renderDashboard();
-  if (name === 'meals')     renderMeals();
-  if (name === 'menus')     renderMenus();
-  if (name === 'profile')   loadProfileForm();
+/* ═══════════════════════════════════════════
+   § 5 — HARRIS-BENEDICT & MACROS
+═══════════════════════════════════════════ */
+function calcHB({age,sex,weight,height,activity}){
+  const bmr=sex==='male'
+    ?88.362+13.397*weight+4.799*height-5.677*age
+    :447.593+9.247*weight+3.098*height-4.330*age;
+  return{bmr:Math.round(bmr),tdee:Math.round(bmr*activity)};
+}
+function macroGoals(){
+  const{tdee,carbsPct,protPct,fatPct}=S.profile;
+  if(!tdee)return null;
+  return{kcal:tdee,carbs:Math.round(tdee*carbsPct/100/4),prot:Math.round(tdee*protPct/100/4),fat:Math.round(tdee*fatPct/100/9)};
 }
 
-document.querySelectorAll('.nav-btn').forEach(btn => {
-  btn.addEventListener('click', () => showView(btn.dataset.view));
-});
-
-/* ════════════════════════════════════════════════
-   SECTION 4 — HARRIS-BENEDICT & MACROS
-════════════════════════════════════════════════ */
-
-/**
- * Calculates BMR using the revised Harris-Benedict equation.
- * Male:   88.362 + (13.397 × weight) + (4.799 × height) − (5.677 × age)
- * Female: 447.593 + (9.247 × weight) + (3.098 × height) − (4.330 × age)
- */
-function calcHarrisBenedict({ age, sex, weight, height, activity }) {
-  let bmr;
-  if (sex === 'male') {
-    bmr = 88.362 + (13.397 * weight) + (4.799 * height) - (5.677 * age);
-  } else {
-    bmr = 447.593 + (9.247 * weight) + (3.098 * height) - (4.330 * age);
-  }
-  const tdee = Math.round(bmr * activity);
-  return { bmr: Math.round(bmr), tdee };
-}
-
-/** Daily macro goals in grams based on TDEE */
-function macroGoals() {
-  const { tdee, carbsPct, protPct, fatPct } = STATE.profile;
-  if (!tdee) return null;
-  return {
-    kcal:  tdee,
-    carbs: Math.round((tdee * carbsPct / 100) / 4),  // 4 kcal/g
-    prot:  Math.round((tdee * protPct  / 100) / 4),
-    fat:   Math.round((tdee * fatPct   / 100) / 9),  // 9 kcal/g
-  };
-}
-
-$('btn-calc-tdee').addEventListener('click', () => {
-  const age      = +$('p-age').value;
-  const sex      = $('p-sex').value;
-  const weight   = +$('p-weight').value;
-  const height   = +$('p-height').value;
-  const activity = +$('p-activity').value;
-  if (!age || !weight || !height) { toast('Completa todos los campos'); return; }
-  const { bmr, tdee } = calcHarrisBenedict({ age, sex, weight, height, activity });
-  $('tdee-text').textContent = `Objetivo: ${tdee} kcal/día`;
-  $('bmr-text').textContent  = `Metabolismo basal (BMR): ${bmr} kcal`;
+$('btn-calc-tdee').addEventListener('click',()=>{
+  const age=+$('p-age').value,sex=$('p-sex').value,w=+$('p-weight').value,h=+$('p-height').value,act=+$('p-activity').value;
+  if(!age||!w||!h){toast('Completa todos los campos');return;}
+  const{bmr,tdee}=calcHB({age,sex,weight:w,height:h,activity:act});
+  $('tdee-text').textContent='Objetivo: '+tdee+' kcal/día';
+  $('bmr-text').textContent='BMR: '+bmr+' kcal/día';
   $('tdee-result').classList.remove('hidden');
-  // Store temporarily until saved
-  STATE.profile._tempTdee = tdee;
-  STATE.profile._tempBmr  = bmr;
+  S.profile._tmpTdee=tdee;S.profile._tmpBmr=bmr;
 });
 
-$('btn-save-profile').addEventListener('click', () => {
-  const carbsPct = +$('p-carbs-pct').value;
-  const protPct  = +$('p-prot-pct').value;
-  const fatPct   = +$('p-fat-pct').value;
-  if (carbsPct + protPct + fatPct !== 100) { toast('Los macros deben sumar 100%'); return; }
-
-  Object.assign(STATE.profile, {
-    age:      +$('p-age').value || STATE.profile.age,
-    sex:      $('p-sex').value,
-    weight:   +$('p-weight').value || STATE.profile.weight,
-    height:   +$('p-height').value || STATE.profile.height,
-    activity: +$('p-activity').value,
-    carbsPct, protPct, fatPct,
-    tdee: STATE.profile._tempTdee || STATE.profile.tdee,
-    bmr:  STATE.profile._tempBmr  || STATE.profile.bmr,
+$('btn-save-profile').addEventListener('click',()=>{
+  const c=+$('p-carbs-pct').value,pr=+$('p-prot-pct').value,fa=+$('p-fat-pct').value;
+  if(c+pr+fa!==100){toast('Los macros deben sumar 100%');return;}
+  Object.assign(S.profile,{
+    age:+$('p-age').value||S.profile.age,sex:$('p-sex').value,
+    weight:+$('p-weight').value||S.profile.weight,
+    height:+$('p-height').value||S.profile.height,
+    activity:+$('p-activity').value,carbsPct:c,protPct:pr,fatPct:fa,
+    tdee:S.profile._tmpTdee||S.profile.tdee,bmr:S.profile._tmpBmr||S.profile.bmr,
   });
-  saveState();
-  toast('✓ Perfil guardado');
-  updateHeaderKcal();
+  save();toast('✓ Perfil guardado');updateHeaderKcal();
 });
 
-/** Populate profile form from state */
-function loadProfileForm() {
-  const p = STATE.profile;
-  if (p.age)    $('p-age').value    = p.age;
-  if (p.weight) $('p-weight').value = p.weight;
-  if (p.height) $('p-height').value = p.height;
-  $('p-sex').value      = p.sex;
-  $('p-activity').value = p.activity;
-  $('p-carbs-pct').value = p.carbsPct;
-  $('p-prot-pct').value  = p.protPct;
-  $('p-fat-pct').value   = p.fatPct;
-  if (p.tdee) {
-    $('tdee-text').textContent = `Objetivo: ${p.tdee} kcal/día`;
-    $('bmr-text').textContent  = `Metabolismo basal (BMR): ${p.bmr} kcal`;
-    $('tdee-result').classList.remove('hidden');
-  }
+function loadProfileForm(){
+  const p=S.profile;
+  if(p.age)$('p-age').value=p.age;if(p.weight)$('p-weight').value=p.weight;
+  if(p.height)$('p-height').value=p.height;
+  $('p-sex').value=p.sex;$('p-activity').value=p.activity;
+  $('p-carbs-pct').value=p.carbsPct;$('p-prot-pct').value=p.protPct;$('p-fat-pct').value=p.fatPct;
+  if(p.tdee){$('tdee-text').textContent='Objetivo: '+p.tdee+' kcal/día';$('bmr-text').textContent='BMR: '+p.bmr+' kcal/día';$('tdee-result').classList.remove('hidden');}
 }
 
-function updateHeaderKcal() {
-  const goals = macroGoals();
-  if (!goals) return;
+function updateHeaderKcal(){
+  const goals=macroGoals();if(!goals)return;
   $('header-kcal').classList.remove('hidden');
-  // Sum today's kcal
-  const todayKey = isoDate(new Date());
-  const dayData  = STATE.weekPlan[todayKey];
-  let eaten = 0;
-  (dayData?.slots || []).forEach(sid => {
-    const m = getMeal(sid);
-    if (m) eaten += mealTotals(m).kcal;
-  });
-  $('header-kcal-text').textContent = `${fmt(eaten)} / ${goals.kcal} kcal`;
+  const dd=S.weekPlan[isoDate(new Date())];
+  let eaten=0;(dd?.slots||[]).forEach(sid=>{const m=getMeal(sid);if(m)eaten+=mealTotals(m).kcal;});
+  $('header-kcal-text').textContent=fmt(eaten)+' / '+goals.kcal+' kcal';
 }
 
-/* ════════════════════════════════════════════════
-   SECTION 5 — DASHBOARD (weekly view)
-════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   § 6 — NAVEGACIÓN
+═══════════════════════════════════════════ */
+let _mealCatFilter='all';
+let currentView='dashboard';
 
-let currentWeekMonday = weekMonday();
+function showView(name){
+  ['dashboard','meals','menus','profile'].forEach(v=>{
+    $('view-'+v).classList.toggle('hidden',v!==name);
+    $('view-'+v).classList.toggle('fade-in',v===name);
+  });
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.view===name));
+  currentView=name;
+  if(name==='dashboard')renderDashboard();
+  if(name==='meals')renderMeals();
+  if(name==='menus')renderMenus();
+  if(name==='profile')loadProfileForm();
+  refreshUI();
+}
+document.querySelectorAll('.nav-btn').forEach(b=>b.addEventListener('click',()=>showView(b.dataset.view)));
 
-function renderDashboard() {
-  const dates = weekDates(currentWeekMonday);
-  // Week label
-  const start = dates[0], end = dates[6];
-  $('week-label').textContent =
-    `${start.getDate()} ${MONTH_NAMES[start.getMonth()]} – ${end.getDate()} ${MONTH_NAMES[end.getMonth()]} ${end.getFullYear()}`;
+/* meal category filter */
+document.querySelectorAll('.cat-pill').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    _mealCatFilter=btn.dataset.cat;
+    document.querySelectorAll('.cat-pill').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    renderMeals();
+  });
+});
 
-  const goals = macroGoals();
-  const container = $('days-carousel');
-  container.innerHTML = '';
+/* ═══════════════════════════════════════════
+   § 7 — DASHBOARD
+═══════════════════════════════════════════ */
+let currentWeekMonday=weekMonday();
 
-  dates.forEach((date, di) => {
-    const key     = isoDate(date);
-    const dayData = STATE.weekPlan[key] || { slots: [] };
-    const isToday = isoDate(new Date()) === key;
+function renderDashboard(){
+  const dates=weekDates(currentWeekMonday);
+  const[s,e]=[dates[0],dates[6]];
+  $('week-label').textContent=s.getDate()+' '+MONTH_NAMES[s.getMonth()]+' – '+e.getDate()+' '+MONTH_NAMES[e.getMonth()]+' '+e.getFullYear();
+  const goals=macroGoals();
+  const container=$('days-grid');
+  container.innerHTML='';
 
-    // Compute totals for the day
-    let dayKcal=0, dayProt=0, dayCarbs=0, dayFat=0;
-    dayData.slots.forEach(sid => {
-      const m = getMeal(sid);
-      if (m) { const t=mealTotals(m); dayKcal+=t.kcal; dayProt+=t.prot; dayCarbs+=t.carbs; dayFat+=t.fat; }
-    });
+  dates.forEach((date,di)=>{
+    const key=isoDate(date);
+    const dd=S.weekPlan[key]||{slots:[]};
+    const isToday=isoDate(new Date())===key;
 
-    // Progress percent (cap at 100%)
-    const pctKcal  = goals ? Math.min(100, Math.round(dayKcal  / goals.kcal  * 100)) : 0;
-    const pctCarbs = goals ? Math.min(100, Math.round(dayCarbs / goals.carbs * 100)) : 0;
-    const pctProt  = goals ? Math.min(100, Math.round(dayProt  / goals.prot  * 100)) : 0;
-    const pctFat   = goals ? Math.min(100, Math.round(dayFat   / goals.fat   * 100)) : 0;
+    let dk=0,dp=0,dc=0,df=0;
+    dd.slots.forEach(sid=>{const m=getMeal(sid);if(m){const t=mealTotals(m);dk+=t.kcal;dp+=t.prot;dc+=t.carbs;df+=t.fat;}});
 
-    // Build slot items HTML
-    const slotsHtml = dayData.slots.map((sid, si) => {
-      const m = getMeal(sid);
-      if (!m) return `
-        <div class="postit-slot p-2 text-xs text-gray-400 text-center flex items-center justify-center gap-1"
-          data-key="${key}" data-si="${si}" onclick="openSlotPicker('${key}', ${si})">
-          <i data-lucide="plus" class="w-3 h-3"></i> Añadir
-        </div>`;
-      const t = mealTotals(m);
-      return `
-        <div class="postit p-2.5 cursor-pointer text-xs" onclick="openMealDetail('${m.id}')">
-          <div class="font-medium text-gray-700 truncate">${m.name}</div>
-          <div class="flex items-center justify-between mt-1">
-            <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
-            <button class="text-gray-300 hover:text-red-400 transition ml-1"
-              onclick="event.stopPropagation(); removeSlot('${key}',${si})">
-              <i data-lucide="x" class="w-3 h-3"></i>
-            </button>
+    // Feedback color logic: ±10% = green, below = orange, above = red
+    let progClass='prog-neutral', dayStatus='';
+    if(goals&&goals.kcal){
+      const ratio=dk/goals.kcal;
+      if(ratio>=0.9&&ratio<=1.1){progClass='prog-green';dayStatus='day-ok';}
+      else if(ratio<0.9){progClass='prog-orange';dayStatus='day-low';}
+      else{progClass='prog-red';dayStatus='day-over';}
+    }
+    const pct=(v,g)=>g?Math.min(100,Math.round(v/g*100)):0;
+
+    const slotsHtml=dd.slots.map((sid,si)=>{
+      const m=getMeal(sid);
+      if(!m)return`<div class="slot-empty p-2 text-xs text-gray-400 text-center flex items-center justify-center gap-1 min-h-[36px]"
+        onclick="window.openSlotPicker('${key}',${si})">
+        <i data-lucide="plus" class="w-3 h-3"></i> Añadir</div>`;
+      const t=mealTotals(m);
+      const catLabel=m.category?`<span class="tag ${CAT_COLORS[m.category]||''} mr-1">${CAT_LABELS[m.category]||''}</span>`:'';
+      return`<div class="postit p-2.5 text-xs relative group">
+        <div class="font-semibold text-gray-700 truncate pr-10">${catLabel}${m.name}</div>
+        <div class="flex items-center justify-between mt-1 gap-1">
+          <span class="tag tag-kcal">${fmt(t.kcal)} kcal</span>
+          <div class="flex gap-0.5 opacity-0 group-hover:opacity-100 transition">
+            <button title="Ver" onclick="event.stopPropagation();window.openMealDetail('${m.id}')"
+              class="text-gray-300 hover:text-sage-500 p-0.5"><i data-lucide="eye" class="w-3 h-3"></i></button>
+            <button title="Copiar al día siguiente" onclick="event.stopPropagation();window.copySlotToNextDay('${key}',${si})"
+              class="text-gray-300 hover:text-amber-500 p-0.5"><i data-lucide="copy" class="w-3 h-3"></i></button>
+            <button title="Eliminar" onclick="event.stopPropagation();window.removeSlot('${key}',${si})"
+              class="text-gray-300 hover:text-red-400 p-0.5"><i data-lucide="x" class="w-3 h-3"></i></button>
           </div>
-        </div>`;
+        </div>
+      </div>`;
     }).join('');
 
-    // Add slot button
-    const addSlotBtn = `
-      <button class="postit-slot p-2 text-xs text-gray-400 text-center flex items-center justify-center gap-1 w-full"
-        onclick="addSlot('${key}')">
-        <i data-lucide="plus" class="w-3 h-3"></i> Comida
-      </button>`;
-
-    // Macro progress bars
-    const barsHtml = goals ? `
-      <div class="mt-3 space-y-1.5">
-        <div class="flex justify-between text-[10px] text-gray-400">
-          <span>Kcal</span><span>${fmt(dayKcal)}/${goals.kcal}</span>
+    const barsHtml=goals?`
+      <div class="space-y-1.5 mt-2">
+        <div class="flex justify-between text-[10px] text-gray-400"><span>Kcal</span><span>${fmt(dk)}/${goals.kcal}</span></div>
+        <div class="prog-wrap"><div class="prog-fill ${progClass}" style="width:${pct(dk,goals.kcal)}%"></div></div>
+        <div class="flex gap-1">
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">HC</div><div class="prog-wrap"><div class="prog-fill prog-neutral" style="width:${pct(dc,goals.carbs)}%"></div></div></div>
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">P</div><div class="prog-wrap"><div class="prog-fill prog-green" style="width:${pct(dp,goals.prot)}%"></div></div></div>
+          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">G</div><div class="prog-wrap"><div class="prog-fill prog-orange" style="width:${pct(df,goals.fat)}%"></div></div></div>
         </div>
-        <div class="prog-bar"><div class="prog-fill bg-peach-300" style="width:${pctKcal}%"></div></div>
-        <div class="flex gap-1 mt-1">
-          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">HC</div>
-            <div class="prog-bar"><div class="prog-fill bg-lavender-300" style="width:${pctCarbs}%"></div></div></div>
-          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">Prot</div>
-            <div class="prog-bar"><div class="prog-fill bg-sage-300" style="width:${pctProt}%"></div></div></div>
-          <div class="flex-1"><div class="text-[9px] text-gray-400 mb-0.5">Grasas</div>
-            <div class="prog-bar"><div class="prog-fill bg-cream-300" style="width:${pctFat}%"></div></div></div>
-        </div>
-      </div>` : '';
+      </div>`:
+      '<p class="text-[10px] text-gray-300 mt-2 text-center">Sin objetivo</p>';
 
-    const col = document.createElement('div');
-    col.className = `flex flex-col gap-2`;
-    col.innerHTML = `
+    const col=document.createElement('div');
+    col.className='flex flex-col gap-2 '+dayStatus;
+    col.innerHTML=`
       <div class="flex items-center justify-between mb-1">
         <div>
-          <span class="text-xs font-semibold ${isToday ? 'text-sage-500' : 'text-gray-500'}">${DAY_NAMES[di]}</span>
-          <span class="ml-1 text-xs text-gray-300">${date.getDate()}/${date.getMonth()+1}</span>
+          <span class="text-xs font-bold ${isToday?'text-sage-500':'text-gray-500'}">${DAY_NAMES[di]}</span>
+          <span class="ml-1 text-[10px] text-gray-300">${date.getDate()}/${date.getMonth()+1}</span>
         </div>
-        ${isToday ? '<div class="w-1.5 h-1.5 rounded-full bg-sage-400"></div>' : ''}
+        <div class="flex items-center gap-1">
+          ${dayStatus?`<span class="day-header-dot w-1.5 h-1.5 rounded-full inline-block"></span>`:''}
+          ${isToday?'<span class="text-[10px] text-sage-400 font-semibold">HOY</span>':''}
+        </div>
       </div>
-      <!-- Slots -->
-      <div class="space-y-2" id="slots-${key}">
-        ${slotsHtml}
-      </div>
-      ${addSlotBtn}
-      <!-- Progress -->
-      <div class="postit p-3 mt-1">${barsHtml}</div>
-    `;
+      <div class="space-y-1.5" id="slots-${key}">${slotsHtml}</div>
+      <button class="slot-empty py-1.5 text-xs text-gray-400 flex items-center justify-center gap-1 w-full"
+        onclick="window.addSlot('${key}')">
+        <i data-lucide="plus" class="w-3 h-3"></i> Comida
+      </button>
+      <div class="postit p-2.5">${barsHtml}</div>`;
     container.appendChild(col);
   });
-
-  lucide.createIcons();
-  updateHeaderKcal();
+  refreshUI();updateHeaderKcal();
 }
 
-// Week navigation
-$('btn-prev-week').addEventListener('click', () => {
-  currentWeekMonday.setDate(currentWeekMonday.getDate() - 7);
-  renderDashboard();
-});
-$('btn-next-week').addEventListener('click', () => {
-  currentWeekMonday.setDate(currentWeekMonday.getDate() + 7);
-  renderDashboard();
-});
-$('btn-today').addEventListener('click', () => {
-  currentWeekMonday = weekMonday();
-  renderDashboard();
-});
+$('btn-prev-week').addEventListener('click',()=>{currentWeekMonday.setDate(currentWeekMonday.getDate()-7);renderDashboard();});
+$('btn-next-week').addEventListener('click',()=>{currentWeekMonday.setDate(currentWeekMonday.getDate()+7);renderDashboard();});
+$('btn-today').addEventListener('click',()=>{currentWeekMonday=weekMonday();renderDashboard();});
 
-/** Add an empty slot to a day */
-function addSlot(key) {
-  if (!STATE.weekPlan[key]) STATE.weekPlan[key] = { slots: [] };
-  // Open picker immediately
-  const si = STATE.weekPlan[key].slots.length;
-  STATE.weekPlan[key].slots.push(null);
-  saveState();
-  renderDashboard();
-  openSlotPicker(key, si);
-}
+/* ═══════════════════════════════════════════
+   § 8 — SLOTS (window.*)
+═══════════════════════════════════════════ */
+window.addSlot=function(key){
+  if(!S.weekPlan[key])S.weekPlan[key]={slots:[]};
+  const si=S.weekPlan[key].slots.length;
+  S.weekPlan[key].slots.push(null);save();
+  renderDashboard();window.openSlotPicker(key,si);
+};
 
-/** Remove a slot from a day */
-function removeSlot(key, si) {
-  if (!STATE.weekPlan[key]) return;
-  STATE.weekPlan[key].slots.splice(si, 1);
-  saveState();
-  renderDashboard();
-}
+window.removeSlot=function(key,si){
+  if(!S.weekPlan[key])return;
+  S.weekPlan[key].slots.splice(si,1);save();renderDashboard();
+};
 
-/** Open picker to assign a meal to a slot */
-function openSlotPicker(key, si) {
-  const meals = STATE.meals;
-  if (meals.length === 0) {
-    toast('Primero crea comidas en "Mis Comidas"');
-    return;
-  }
-  const listHtml = meals.map(m => {
-    const t = mealTotals(m);
-    return `<button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl"
-      onclick="assignSlot('${key}',${si},'${m.id}')">
-      <span class="font-medium text-sm">${m.name}</span>
-      <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
-    </button>`;
-  }).join('');
-
-  openModal(`
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-display text-xl">Elegir comida</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
+window.openSlotPicker=function(key,si){
+  if(!S.meals.length){toast('Primero crea comidas en "Mis Comidas"');return;}
+  const listHtml=S.meals.map(m=>{
+    const t=mealTotals(m);
+    const catTag=m.category?`<span class="tag ${CAT_COLORS[m.category]||''} ml-1">${CAT_LABELS[m.category]||''}</span>`:'';
+    return`<button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl gap-2"
+      onclick="window.assignSlot('${key}',${si},'${m.id}')">
+      <span class="font-medium text-sm flex items-center gap-1">${m.name}${catTag}</span>
+      <span class="tag tag-kcal">${fmt(t.kcal)} kcal</span>
+    </button>`;}).join('');
+  openModal(`<div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl">Elegir comida</h3>
+      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-  `);
-}
+    <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
+  </div>`);
+};
 
-function assignSlot(key, si, mealId) {
-  if (!STATE.weekPlan[key]) STATE.weekPlan[key] = { slots: [] };
-  STATE.weekPlan[key].slots[si] = mealId;
-  saveState();
-  closeModal();
-  renderDashboard();
-}
+window.assignSlot=function(key,si,mealId){
+  if(!S.weekPlan[key])S.weekPlan[key]={slots:[]};
+  S.weekPlan[key].slots[si]=mealId;save();window.closeModal();renderDashboard();
+};
 
-/* ════════════════════════════════════════════════
-   SECTION 6 — MEAL DETAIL MODAL
-════════════════════════════════════════════════ */
+window.copySlotToNextDay=function(key,si){
+  const dd=S.weekPlan[key];if(!dd)return;
+  const mealId=dd.slots[si];if(!mealId)return;
+  const d=new Date(key+'T00:00:00');d.setDate(d.getDate()+1);
+  const nextKey=isoDate(d);
+  if(!S.weekPlan[nextKey])S.weekPlan[nextKey]={slots:[]};
+  S.weekPlan[nextKey].slots.push(mealId);save();renderDashboard();
+  toast('✓ Copiado al día siguiente');
+};
 
-function openMealDetail(mealId) {
-  const m = getMeal(mealId);
-  if (!m) return;
-  const t = mealTotals(m);
+/* ═══════════════════════════════════════════
+   § 9 — LISTA DE LA COMPRA
+═══════════════════════════════════════════ */
+$('btn-shopping-list').addEventListener('click',()=>window.generateShoppingList());
 
-  const ingHtml = (m.ingredients || []).map(ing => `
+window.generateShoppingList=function(){
+  const dates=weekDates(currentWeekMonday);
+  const totals={};// {name: grams}
+  dates.forEach(date=>{
+    const dd=S.weekPlan[isoDate(date)];if(!dd)return;
+    dd.slots.forEach(sid=>{
+      const m=getMeal(sid);if(!m)return;
+      (m.ingredients||[]).forEach(ing=>{
+        const key=ing.name.toLowerCase().trim();
+        totals[key]=(totals[key]||{name:ing.name,grams:0});
+        totals[key].grams+=ing.grams;
+      });
+    });
+  });
+  const items=Object.values(totals).sort((a,b)=>a.name.localeCompare(b.name));
+  if(!items.length){toast('No hay ingredientes en esta semana');return;}
+
+  const listHtml=items.map(it=>`
     <div class="flex items-center justify-between py-2 border-b border-cream-200 last:border-0 text-sm">
-      <div>
-        <span class="font-medium">${ing.name}</span>
-        <span class="text-gray-400 ml-1">${ing.grams}g</span>
-      </div>
-      <div class="flex gap-2">
-        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(ing.kcal)} kcal</span>
-        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(ing.prot)}g P</span>
-        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(ing.carbs)}g HC</span>
-        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(ing.fat)}g G</span>
-      </div>
+      <span class="font-medium text-gray-700">${it.name}</span>
+      <span class="tag tag-kcal">${fmt(it.grams)} g</span>
     </div>`).join('');
 
-  openModal(`
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-1">
-        <h3 class="font-display text-2xl">${m.name}</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <div class="flex gap-3 mb-5 flex-wrap">
-        <span class="macro-tag bg-peach-100 text-peach-500 text-sm">${fmt(t.kcal)} kcal</span>
-        <span class="macro-tag bg-sage-100 text-sage-500 text-sm">${fmt(t.prot)}g Proteína</span>
-        <span class="macro-tag bg-lavender-100 text-lavender-500 text-sm">${fmt(t.carbs)}g Carbos</span>
-        <span class="macro-tag bg-cream-200 text-gray-500 text-sm">${fmt(t.fat)}g Grasas</span>
-      </div>
-      <h4 class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">Ingredientes</h4>
-      <div>${ingHtml || '<p class="text-sm text-gray-400">Sin ingredientes</p>'}</div>
+  const wk=$('week-label').textContent;
+  openModal(`<div class="p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display text-xl">Lista de la Compra</h3>
+      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-  `);
-}
+    <p class="text-xs text-gray-400 mb-4">${wk}</p>
+    <div class="max-h-[55vh] overflow-y-auto">${listHtml}</div>
+    <button onclick="window.copyShoppingListToClipboard()" class="mt-4 w-full py-2 border border-cream-300 rounded-xl text-sm text-gray-500 hover:bg-cream-100 transition flex items-center justify-center gap-1.5">
+      <i data-lucide="clipboard-copy" class="w-4 h-4"></i> Copiar al portapapeles
+    </button>
+  </div>`);
+  window._shoppingItems=items;
+};
 
-/* ════════════════════════════════════════════════
-   SECTION 7 — MIS COMIDAS (meal management)
-════════════════════════════════════════════════ */
+window.copyShoppingListToClipboard=function(){
+  const lines=(window._shoppingItems||[]).map(it=>`${it.name}: ${fmt(it.grams)}g`).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>toast('✓ Copiado al portapapeles'));
+};
 
-function renderMeals() {
-  const container = $('meals-list');
-  container.innerHTML = '';
-  if (STATE.meals.length === 0) {
-    container.innerHTML = `<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
+/* ═══════════════════════════════════════════
+   § 10 — MEAL DETAIL
+═══════════════════════════════════════════ */
+window.openMealDetail=function(mealId){
+  const m=getMeal(mealId);if(!m)return;
+  const t=mealTotals(m);
+  const ingHtml=(m.ingredients||[]).map(ing=>`
+    <div class="flex items-center justify-between py-2 border-b border-cream-200 last:border-0 text-sm">
+      <div><span class="font-medium">${ing.name}</span><span class="text-gray-400 ml-1">${ing.grams}g</span></div>
+      <div class="flex gap-1 flex-wrap justify-end">
+        <span class="tag tag-kcal">${fmt(ing.kcal)}</span>
+        <span class="tag tag-prot">${fmt(ing.prot)}g P</span>
+        <span class="tag tag-hc">${fmt(ing.carbs)}g HC</span>
+        <span class="tag tag-fat">${fmt(ing.fat)}g G</span>
+      </div>
+    </div>`).join('');
+  const catTag=m.category?`<span class="tag ${CAT_COLORS[m.category]||''}">${CAT_LABELS[m.category]||''}</span>`:'';
+  openModal(`<div class="p-6">
+    <div class="flex items-center justify-between mb-1">
+      <h3 class="font-display text-2xl">${m.name}</h3>
+      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+    </div>
+    <div class="flex gap-2 mb-4 flex-wrap">${catTag}
+      <span class="tag tag-kcal text-sm">${fmt(t.kcal)} kcal</span>
+      <span class="tag tag-prot text-sm">${fmt(t.prot)}g P</span>
+      <span class="tag tag-hc text-sm">${fmt(t.carbs)}g HC</span>
+      <span class="tag tag-fat text-sm">${fmt(t.fat)}g G</span>
+    </div>
+    <h4 class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-2">Ingredientes</h4>
+    <div>${ingHtml||'<p class="text-sm text-gray-400">Sin ingredientes</p>'}</div>
+  </div>`);
+};
+
+/* ═══════════════════════════════════════════
+   § 11 — MIS COMIDAS
+═══════════════════════════════════════════ */
+function renderMeals(){
+  const container=$('meals-list');container.innerHTML='';
+  let meals=S.meals;
+  if(_mealCatFilter!=='all')meals=meals.filter(m=>m.category===_mealCatFilter);
+  if(!meals.length){
+    container.innerHTML=`<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
       <i data-lucide="utensils" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
-      <p>Aún no tienes comidas guardadas</p>
-    </div>`;
-    lucide.createIcons();
-    return;
+      <p>${_mealCatFilter==='all'?'Aún no tienes comidas guardadas':'Sin comidas en esta categoría'}</p></div>`;
+    refreshUI();return;
   }
-  STATE.meals.forEach(m => {
-    const t = mealTotals(m);
-    const card = document.createElement('div');
-    card.className = 'postit p-4 flex flex-col gap-3';
-    card.innerHTML = `
+  meals.forEach(m=>{
+    const t=mealTotals(m);
+    const catTag=m.category?`<span class="tag ${CAT_COLORS[m.category]||''}">${CAT_LABELS[m.category]||''}</span>`:'';
+    const card=document.createElement('div');
+    card.className='postit p-4 flex flex-col gap-2.5';
+    card.innerHTML=`
       <div class="flex items-start justify-between gap-2">
-        <h3 class="font-semibold text-gray-800 text-sm leading-snug">${m.name}</h3>
+        <div>
+          <div class="mb-1">${catTag}</div>
+          <h3 class="font-semibold text-gray-800 text-sm">${m.name}</h3>
+        </div>
         <div class="flex gap-1 shrink-0">
-          <button class="text-gray-300 hover:text-sage-500 transition" onclick="openEditMeal('${m.id}')">
+          <button title="Duplicar" class="text-gray-300 hover:text-amber-500 transition" onclick="window.duplicateMeal('${m.id}')">
+            <i data-lucide="copy" class="w-4 h-4"></i>
+          </button>
+          <button title="Editar" class="text-gray-300 hover:text-sage-500 transition" onclick="window.openEditMeal('${m.id}')">
             <i data-lucide="pencil" class="w-4 h-4"></i>
           </button>
-          <button class="text-gray-300 hover:text-red-400 transition" onclick="deleteMeal('${m.id}')">
+          <button title="Eliminar" class="text-gray-300 hover:text-red-400 transition" onclick="window.deleteMeal('${m.id}')">
             <i data-lucide="trash-2" class="w-4 h-4"></i>
           </button>
         </div>
       </div>
-      <div class="flex flex-wrap gap-1.5">
-        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(t.kcal)} kcal</span>
-        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(t.prot)}g P</span>
-        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(t.carbs)}g HC</span>
-        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(t.fat)}g G</span>
+      <div class="flex flex-wrap gap-1">
+        <span class="tag tag-kcal">${fmt(t.kcal)} kcal</span>
+        <span class="tag tag-prot">${fmt(t.prot)}g P</span>
+        <span class="tag tag-hc">${fmt(t.carbs)}g HC</span>
+        <span class="tag tag-fat">${fmt(t.fat)}g G</span>
       </div>
-      <div class="text-xs text-gray-400">${(m.ingredients||[]).length} ingrediente(s)</div>
-    `;
+      <div class="text-xs text-gray-400">${(m.ingredients||[]).length} ingrediente(s)</div>`;
     container.appendChild(card);
   });
-  lucide.createIcons();
+  refreshUI();
 }
 
-function deleteMeal(id) {
-  STATE.meals = STATE.meals.filter(m => m.id !== id);
-  // Remove from week plan
-  Object.keys(STATE.weekPlan).forEach(k => {
-    STATE.weekPlan[k].slots = STATE.weekPlan[k].slots.map(s => s === id ? null : s);
-  });
-  saveState();
-  renderMeals();
-  toast('Comida eliminada');
-}
+window.deleteMeal=function(id){
+  S.meals=S.meals.filter(m=>m.id!==id);
+  Object.keys(S.weekPlan).forEach(k=>{S.weekPlan[k].slots=S.weekPlan[k].slots.map(s=>s===id?null:s);});
+  save();renderMeals();toast('Comida eliminada');
+};
 
-$('btn-new-meal').addEventListener('click', () => openEditMeal(null));
+window.duplicateMeal=function(id){
+  const orig=getMeal(id);if(!orig)return;
+  const copy={...orig,id:uid(),name:orig.name+' (copia)',ingredients:[...(orig.ingredients||[]).map(i=>({...i}))]};
+  S.meals.push(copy);save();renderMeals();toast('✓ Plato duplicado');
+  window.openEditMeal(copy.id);
+};
 
-/* ── Meal editor modal ── */
-function openEditMeal(mealId) {
-  const meal = mealId ? getMeal(mealId) : null;
-  const ings = meal ? [...meal.ingredients] : [];
+$('btn-new-meal').addEventListener('click',()=>window.openEditMeal(null));
 
-  function buildIngredientRows() {
-    return ings.map((ing, i) => `
-      <div class="flex items-center justify-between gap-2 py-2 border-b border-cream-200 last:border-0 text-xs">
+/* ═══════════════════════════════════════════
+   § 12 — EDITOR DE COMIDAS (window.*)
+═══════════════════════════════════════════ */
+window.openEditMeal=function(mealId){
+  const meal=mealId?getMeal(mealId):null;
+  window._editorIngs=meal?[...meal.ingredients]:[];
+  window._editorMealId=mealId;
+
+  function buildRows(){
+    if(!window._editorIngs.length)return'<p class="text-xs text-gray-400 py-2">Sin ingredientes aún</p>';
+    return window._editorIngs.map((ing,i)=>`
+      <div class="flex items-center justify-between gap-1 py-2 border-b border-cream-200 last:border-0 text-xs">
         <span class="font-medium text-gray-700 flex-1 truncate">${ing.name} (${ing.grams}g)</span>
-        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(ing.kcal)}</span>
-        <span class="macro-tag bg-sage-100 text-sage-500">${fmt(ing.prot)}g</span>
-        <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(ing.carbs)}g</span>
-        <span class="macro-tag bg-cream-200 text-gray-500">${fmt(ing.fat)}g</span>
-        <button class="text-gray-300 hover:text-red-400" onclick="removeIngFromEditor(${i})">
+        <span class="tag tag-kcal">${fmt(ing.kcal)}</span>
+        <span class="tag tag-prot">${fmt(ing.prot)}g</span>
+        <span class="tag tag-hc">${fmt(ing.carbs)}g</span>
+        <span class="tag tag-fat">${fmt(ing.fat)}g</span>
+        <button class="text-gray-300 hover:text-red-400 ml-1 shrink-0" onclick="window.removeIngFromEditor(${i})">
           <i data-lucide="x" class="w-3 h-3"></i>
         </button>
       </div>`).join('');
   }
 
-  function renderModal() {
-    const totalKcal  = ings.reduce((a,i)=>a+i.kcal,0);
-    const totalProt  = ings.reduce((a,i)=>a+i.prot,0);
-    const totalCarbs = ings.reduce((a,i)=>a+i.carbs,0);
-    const totalFat   = ings.reduce((a,i)=>a+i.fat,0);
+  function renderEditorModal(){
+    const ings=window._editorIngs;
+    const total=ings.reduce((r,i)=>({kcal:r.kcal+i.kcal,prot:r.prot+i.prot,carbs:r.carbs+i.carbs,fat:r.fat+i.fat}),{kcal:0,prot:0,carbs:0,fat:0});
+    const catOpts=['desayuno','comida','cena','snack'].map(c=>`<option value="${c}" ${meal?.category===c?'selected':''}>${CAT_LABELS[c]}</option>`).join('');
 
-    openModal(`
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-display text-xl">${meal ? 'Editar' : 'Nueva'} comida</h3>
-          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-
-        <input id="meal-name-input" type="text" placeholder="Nombre de la comida"
-          value="${meal?.name || ''}"
-          class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4" />
-
-        <!-- Ingredient search -->
-        <div class="mb-3">
-          <label class="text-xs text-gray-400 mb-1 block">Buscar ingrediente (Open Food Facts)</label>
-          <div class="flex gap-2">
-            <input id="ing-search" type="text" placeholder="ej. arroz, pollo, aguacate…"
-              class="flex-1 border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50" />
-            <button onclick="searchIngredient()" class="px-3 py-2 bg-sage-400 text-white rounded-xl text-sm hover:bg-sage-500 transition">
-              <i data-lucide="search" class="w-4 h-4"></i>
-            </button>
-          </div>
-          <div id="ing-results" class="mt-2 max-h-40 overflow-y-auto space-y-1"></div>
-        </div>
-
-        <!-- Manual ingredient fallback -->
-        <details class="mb-4">
-          <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 flex items-center gap-1">
-            <i data-lucide="plus-circle" class="w-3 h-3"></i> Añadir ingrediente manualmente
-          </summary>
-          <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
-            <input id="mi-name"  placeholder="Nombre" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2" />
-            <input id="mi-kcal"  type="number" placeholder="Kcal/100g"  class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
-            <input id="mi-prot"  type="number" placeholder="Prot/100g"  class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
-            <input id="mi-carbs" type="number" placeholder="HC/100g"    class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
-            <input id="mi-fat"   type="number" placeholder="Grasas/100g" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50" />
-            <input id="mi-grams" type="number" placeholder="Gramos a añadir" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2" />
-            <button onclick="addManualIngredient()" class="col-span-2 py-1.5 bg-peach-300 text-white rounded-xl hover:bg-peach-400 transition">
-              Guardar y añadir
-            </button>
-          </div>
-        </details>
-
-        <!-- Current ingredients -->
-        <div id="ing-list">
-          ${buildIngredientRows() || '<p class="text-xs text-gray-400 py-2">Sin ingredientes aún</p>'}
-        </div>
-
-        <!-- Totals -->
-        <div class="mt-3 flex gap-2 flex-wrap">
-          <span class="macro-tag bg-peach-100 text-peach-500">${fmt(totalKcal)} kcal</span>
-          <span class="macro-tag bg-sage-100 text-sage-500">${fmt(totalProt)}g P</span>
-          <span class="macro-tag bg-lavender-100 text-lavender-500">${fmt(totalCarbs)}g HC</span>
-          <span class="macro-tag bg-cream-200 text-gray-500">${fmt(totalFat)}g G</span>
-        </div>
-
-        <button id="btn-save-meal" onclick="saveMealFromEditor()" class="mt-4 w-full py-2.5 bg-sage-400 text-white rounded-xl text-sm font-medium hover:bg-sage-500 transition">
-          Guardar comida
-        </button>
+    openModal(`<div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">${meal?'Editar':'Nueva'} comida</h3>
+        <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-    `);
+      <div class="flex gap-2 mb-3">
+        <input id="meal-name-input" type="text" placeholder="Nombre de la comida" value="${meal?.name||''}"
+          class="flex-1 border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"/>
+        <select id="meal-cat-select" class="border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50">
+          <option value="">Categoría</option>${catOpts}
+        </select>
+      </div>
 
-    // Expose helpers to global for onclick in modal
-    window._editorIngs = ings;
-    window._editorMealId = mealId;
-
-    window.removeIngFromEditor = function(i) {
-      ings.splice(i, 1);
-      renderModal();
-    };
-
-    window.saveMealFromEditor = function() {
-      const name = $('meal-name-input')?.value?.trim();
-      if (!name) { toast('Pon un nombre a la comida'); return; }
-      if (meal) {
-        meal.name = name;
-        meal.ingredients = [...ings];
-      } else {
-        STATE.meals.push({ id: uid(), name, ingredients: [...ings] });
-      }
-      saveState();
-      closeModal();
-      renderMeals();
-      toast('✓ Comida guardada');
-    };
-
-    window.addManualIngredient = function() {
-      const name  = $('mi-name')?.value?.trim();
-      const kcal  = +$('mi-kcal')?.value;
-      const prot  = +$('mi-prot')?.value;
-      const carbs = +$('mi-carbs')?.value;
-      const fat   = +$('mi-fat')?.value;
-      const grams = +$('mi-grams')?.value;
-      if (!name || !grams) { toast('Nombre y gramos son obligatorios'); return; }
-
-      // Save custom ingredient
-      const existing = STATE.customIngredients.find(ci => ci.name.toLowerCase() === name.toLowerCase());
-      if (!existing) {
-        STATE.customIngredients.push({ id: uid(), name, kcalPer100: kcal, protPer100: prot, carbsPer100: carbs, fatPer100: fat });
-        saveState();
-      }
-
-      const factor = grams / 100;
-      ings.push({
-        name, grams,
-        kcal:  kcal  * factor,
-        prot:  prot  * factor,
-        carbs: carbs * factor,
-        fat:   fat   * factor,
-      });
-      renderModal();
-    };
-
-    window.addIngredientFromSearch = function(data, gramsVal) {
-      const grams = gramsVal || 100;
-      const factor = grams / 100;
-      ings.push({
-        name:  data.name,
-        grams,
-        kcal:  (data.kcalPer100  || 0) * factor,
-        prot:  (data.protPer100  || 0) * factor,
-        carbs: (data.carbsPer100 || 0) * factor,
-        fat:   (data.fatPer100   || 0) * factor,
-      });
-      renderModal();
-    };
-
-    window.searchIngredient = async function() {
-      const query = $('ing-search')?.value?.trim();
-      if (!query) return;
-      const resultsEl = $('ing-results');
-      resultsEl.innerHTML = '<p class="text-xs text-gray-400 animate-pulse">Buscando…</p>';
-
-      // First check custom ingredients
-      const customMatches = STATE.customIngredients.filter(ci =>
-        ci.name.toLowerCase().includes(query.toLowerCase())
-      );
-
-      try {
-        const url = `https://world.openfoodfacts.org/cgi/search.pl?search_terms=${encodeURIComponent(query)}&search_simple=1&action=process&json=1&page_size=6&fields=product_name,nutriments,brands`;
-        const res  = await fetch(url);
-        const json = await res.json();
-        const products = (json.products || []).filter(p =>
-          p.product_name && p.nutriments &&
-          p.nutriments['energy-kcal_100g'] != null
-        ).slice(0, 6);
-
-        let html = '';
-
-        // Custom first
-        customMatches.forEach(ci => {
-          html += `<div class="flex items-center justify-between p-2 bg-lavender-50 rounded-xl gap-2 text-xs">
-            <div>
-              <span class="font-medium">${ci.name}</span>
-              <span class="text-gray-400 ml-1">(personalizado)</span>
-              <div class="text-gray-400">${ci.kcalPer100} kcal/100g</div>
-            </div>
-            <div class="flex items-center gap-1">
-              <input type="number" min="1" value="100" id="grams-c-${ci.id}"
-                class="w-16 border border-cream-300 rounded-lg px-2 py-1 bg-white" placeholder="g" />
-              <button onclick="addIngredientFromSearch({name:'${ci.name.replace(/'/g,"\\'")}',kcalPer100:${ci.kcalPer100},protPer100:${ci.protPer100},carbsPer100:${ci.carbsPer100},fatPer100:${ci.fatPer100}}, +document.getElementById('grams-c-${ci.id}').value)"
-                class="px-2 py-1 bg-sage-400 text-white rounded-lg hover:bg-sage-500 transition">+</button>
-            </div>
-          </div>`;
-        });
-
-        products.forEach((p, pi) => {
-          const n = p.nutriments;
-          const name  = p.product_name;
-          const kcal  = Math.round(n['energy-kcal_100g'] || 0);
-          const prot  = Math.round(n['proteins_100g']    || 0);
-          const carbs = Math.round(n['carbohydrates_100g']|| 0);
-          const fat   = Math.round(n['fat_100g']         || 0);
-          const brand = p.brands ? ` · ${p.brands.split(',')[0]}` : '';
-          html += `<div class="flex items-center justify-between p-2 bg-cream-50 rounded-xl gap-2 text-xs">
-            <div class="flex-1 min-w-0">
-              <div class="font-medium truncate">${name}<span class="text-gray-400 font-normal">${brand}</span></div>
-              <div class="text-gray-400">${kcal} kcal · ${prot}g P · ${carbs}g HC · ${fat}g G</div>
-            </div>
-            <div class="flex items-center gap-1 shrink-0">
-              <input type="number" min="1" value="100" id="grams-p-${pi}"
-                class="w-16 border border-cream-300 rounded-lg px-2 py-1 bg-white" placeholder="g" />
-              <button onclick="addIngredientFromSearch({name:'${name.replace(/'/g,"\\'").replace(/\n/g,' ')}',kcalPer100:${kcal},protPer100:${prot},carbsPer100:${carbs},fatPer100:${fat}}, +document.getElementById('grams-p-${pi}').value)"
-                class="px-2 py-1 bg-sage-400 text-white rounded-lg hover:bg-sage-500 transition">+</button>
-            </div>
-          </div>`;
-        });
-
-        if (!html) {
-          html = '<p class="text-xs text-gray-400">Sin resultados. Usa el formulario manual.</p>';
-        }
-        resultsEl.innerHTML = html;
-        lucide.createIcons();
-      } catch(e) {
-        resultsEl.innerHTML = '<p class="text-xs text-red-400">Error de red. Prueba el formulario manual.</p>';
-      }
-    };
-
-    lucide.createIcons();
-  }
-
-  renderModal();
-}
-
-/* ════════════════════════════════════════════════
-   SECTION 8 — MIS MENÚS (menu templates)
-════════════════════════════════════════════════ */
-
-function renderMenus() {
-  const container = $('menus-list');
-  container.innerHTML = '';
-  if (STATE.menus.length === 0) {
-    container.innerHTML = `<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
-      <i data-lucide="layout-template" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
-      <p>Aún no tienes plantillas de menú</p>
-    </div>`;
-    lucide.createIcons();
-    return;
-  }
-  STATE.menus.forEach(menu => {
-    const card = document.createElement('div');
-    card.className = 'postit p-5 flex flex-col gap-3';
-    card.innerHTML = `
-      <div class="flex items-start justify-between">
-        <div>
-          <h3 class="font-semibold text-gray-800">${menu.name}</h3>
-          <p class="text-xs text-gray-400 mt-0.5">${menu.mealsPerDay} comidas/día · 7 días</p>
-        </div>
-        <div class="flex gap-1">
-          <button class="text-gray-300 hover:text-sage-500 transition" onclick="editMenu('${menu.id}')">
-            <i data-lucide="pencil" class="w-4 h-4"></i>
-          </button>
-          <button class="text-gray-300 hover:text-red-400 transition" onclick="deleteMenu('${menu.id}')">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
+      <!-- Buscador -->
+      <div class="mb-3">
+        <label class="text-xs text-gray-500 font-semibold mb-1 block flex items-center gap-1">
+          <i data-lucide="search" class="w-3 h-3"></i> Buscar ingrediente
+          <span class="ml-auto flex gap-1"><span class="badge-basic">Básico</span><span class="badge-saved">Mis alimentos</span></span>
+        </label>
+        <div class="flex gap-2">
+          <input id="ing-search" type="text" placeholder="ej. avena, tofu, lentejas…"
+            class="flex-1 border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"
+            onkeydown="if(event.key==='Enter'){event.preventDefault();window.searchIngredient();}"/>
+          <button onclick="window.searchIngredient()" class="px-3 py-2 bg-sage-400 text-white rounded-xl hover:bg-sage-500 transition">
+            <i data-lucide="search" class="w-4 h-4"></i>
           </button>
         </div>
+        <div id="ing-results" class="mt-2 max-h-48 overflow-y-auto space-y-1.5"></div>
       </div>
-      <button onclick="applyMenu('${menu.id}')" class="text-xs px-3 py-2 bg-lavender-100 text-lavender-500 rounded-xl hover:bg-lavender-200 transition font-medium">
-        Aplicar a semana actual
+
+      <!-- Manual -->
+      <details class="mb-4">
+        <summary class="text-xs text-gray-400 cursor-pointer hover:text-gray-600 select-none flex items-center gap-1">
+          <i data-lucide="plus-circle" class="w-3 h-3"></i> Añadir ingrediente manualmente
+        </summary>
+        <div class="mt-2 grid grid-cols-2 gap-2 text-xs">
+          <input id="mi-name"  placeholder="Nombre" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2"/>
+          <input id="mi-kcal"  type="number" min="0" placeholder="Kcal/100g"   class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50"/>
+          <input id="mi-prot"  type="number" min="0" placeholder="Prot/100g"   class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50"/>
+          <input id="mi-carbs" type="number" min="0" placeholder="HC/100g"     class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50"/>
+          <input id="mi-fat"   type="number" min="0" placeholder="Grasas/100g" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50"/>
+          <input id="mi-grams" type="number" min="1" placeholder="Gramos a añadir" class="border border-cream-300 rounded-xl px-2 py-1.5 bg-cream-50 col-span-2"/>
+          <button onclick="window.addManualIngredient()" class="col-span-2 py-1.5 bg-peach-300 text-white rounded-xl hover:bg-peach-400 transition font-semibold">
+            Guardar y añadir
+          </button>
+        </div>
+      </details>
+
+      <!-- Lista -->
+      <div class="text-xs font-bold text-gray-400 uppercase tracking-wide mb-1">Ingredientes</div>
+      <div id="ing-list">${buildRows()}</div>
+
+      <!-- Totales -->
+      <div class="mt-3 flex gap-1.5 flex-wrap">
+        <span class="tag tag-kcal">${fmt(total.kcal)} kcal</span>
+        <span class="tag tag-prot">${fmt(total.prot)}g P</span>
+        <span class="tag tag-hc">${fmt(total.carbs)}g HC</span>
+        <span class="tag tag-fat">${fmt(total.fat)}g G</span>
+      </div>
+
+      <button onclick="window.saveMealFromEditor()"
+        class="mt-4 w-full py-2.5 bg-sage-400 text-white rounded-xl text-sm font-bold hover:bg-sage-500 transition">
+        Guardar comida
       </button>
-    `;
+    </div>`);
+  }
+
+  renderEditorModal();
+
+  window.removeIngFromEditor=function(i){window._editorIngs.splice(i,1);renderEditorModal();};
+
+  window.saveMealFromEditor=function(){
+    const name=$('meal-name-input')?.value?.trim();
+    if(!name){toast('Pon un nombre a la comida');return;}
+    const category=$('meal-cat-select')?.value||'';
+    if(meal){meal.name=name;meal.category=category;meal.ingredients=[...window._editorIngs];}
+    else{S.meals.push({id:uid(),name,category,ingredients:[...window._editorIngs]});}
+    save();window.closeModal();renderMeals();toast('✓ Comida guardada');
+  };
+
+  window.addManualIngredient=function(){
+    const name=($('mi-name')?.value||'').trim();
+    const kcal=parseFloat($('mi-kcal')?.value)||0;
+    const prot=parseFloat($('mi-prot')?.value)||0;
+    const carbs=parseFloat($('mi-carbs')?.value)||0;
+    const fat=parseFloat($('mi-fat')?.value)||0;
+    const grams=parseFloat($('mi-grams')?.value)||0;
+    if(!name){toast('El nombre es obligatorio');return;}
+    if(!grams){toast('Indica los gramos');return;}
+    if(!S.customIngredients.some(c=>c.name.toLowerCase()===name.toLowerCase())){
+      S.customIngredients.push({id:uid(),name,kcalPer100:kcal,protPer100:prot,carbsPer100:carbs,fatPer100:fat,source:'manual'});
+      save();
+    }
+    const f=grams/100;
+    window._editorIngs.push({name,grams,kcal:kcal*f,prot:prot*f,carbs:carbs*f,fat:fat*f});
+    renderEditorModal();toast('✓ Ingrediente añadido');
+  };
+
+  window.addIngFromSearch=function(data,gramsVal){
+    const grams=gramsVal||100,f=grams/100;
+    window._editorIngs.push({name:data.name,grams,kcal:(data.kcalPer100||0)*f,prot:(data.protPer100||0)*f,carbs:(data.carbsPer100||0)*f,fat:(data.fatPer100||0)*f});
+    renderEditorModal();
+  };
+};
+
+/* ═══════════════════════════════════════════
+   § 13 — MENÚS
+═══════════════════════════════════════════ */
+function renderMenus(){
+  const container=$('menus-list');container.innerHTML='';
+  if(!S.menus.length){
+    container.innerHTML=`<div class="col-span-3 text-center py-16 text-gray-400 text-sm">
+      <i data-lucide="layout-template" class="w-8 h-8 mx-auto mb-3 opacity-30"></i>
+      <p>Aún no tienes plantillas de menú</p></div>`;
+    refreshUI();return;
+  }
+  S.menus.forEach(menu=>{
+    const card=document.createElement('div');
+    card.className='postit p-5 flex flex-col gap-3';
+    card.innerHTML=`
+      <div class="flex items-start justify-between">
+        <div><h3 class="font-semibold text-gray-800">${menu.name}</h3>
+          <p class="text-xs text-gray-400 mt-0.5">${menu.mealsPerDay} comidas/día · 7 días</p></div>
+        <div class="flex gap-1">
+          <button class="text-gray-300 hover:text-sage-500 transition" onclick="window.editMenu('${menu.id}')">
+            <i data-lucide="pencil" class="w-4 h-4"></i></button>
+          <button class="text-gray-300 hover:text-red-400 transition" onclick="window.deleteMenu('${menu.id}')">
+            <i data-lucide="trash-2" class="w-4 h-4"></i></button>
+        </div>
+      </div>
+      <button onclick="window.applyMenu('${menu.id}')"
+        class="text-xs px-3 py-2 bg-lavender-100 text-lavender-500 rounded-xl hover:bg-lavender-200 transition font-semibold">
+        Aplicar a semana actual
+      </button>`;
     container.appendChild(card);
   });
-  lucide.createIcons();
+  refreshUI();
 }
 
-function deleteMenu(id) {
-  STATE.menus = STATE.menus.filter(m => m.id !== id);
-  saveState();
-  renderMenus();
-  toast('Menú eliminado');
-}
+window.deleteMenu=function(id){S.menus=S.menus.filter(m=>m.id!==id);save();renderMenus();toast('Menú eliminado');};
 
-$('btn-new-menu').addEventListener('click', () => {
-  openModal(`
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-display text-xl">Nuevo menú</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <label class="text-xs text-gray-400 mb-1 block">Nombre del menú</label>
-      <input id="menu-name-input" type="text" placeholder="ej. Menú de volumen"
-        class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4" />
-      <label class="text-xs text-gray-400 mb-1 block">¿Cuántas comidas harás al día?</label>
-      <select id="menu-meals-per-day" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4">
-        <option value="2">2 comidas</option>
-        <option value="3" selected>3 comidas</option>
-        <option value="4">4 comidas</option>
-        <option value="5">5 comidas</option>
-        <option value="6">6 comidas</option>
-      </select>
-      <button onclick="createMenu()" class="w-full py-2.5 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
-        Crear menú
-      </button>
+$('btn-new-menu').addEventListener('click',()=>{
+  openModal(`<div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl">Nuevo menú</h3>
+      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-  `);
-
-  window.createMenu = function() {
-    const name = $('menu-name-input')?.value?.trim();
-    const mpd  = +($('menu-meals-per-day')?.value || 3);
-    if (!name) { toast('Escribe un nombre'); return; }
-    const newMenu = {
-      id: uid(), name, mealsPerDay: mpd,
-      // 7 days × mpd slots (null = empty)
-      days: Array.from({length:7}, () => Array(mpd).fill(null))
-    };
-    STATE.menus.push(newMenu);
-    saveState();
-    closeModal();
-    renderMenus();
-    toast('✓ Menú creado');
-    // Open editor immediately
-    editMenu(newMenu.id);
-  };
+    <label class="text-xs text-gray-400 mb-1 block">Nombre del menú</label>
+    <input id="menu-name-input" type="text" placeholder="ej. Menú semanal vegano"
+      class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4"/>
+    <label class="text-xs text-gray-400 mb-1 block">Comidas al día</label>
+    <select id="menu-mpd" class="w-full border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50 mb-4">
+      <option value="2">2</option><option value="3" selected>3</option>
+      <option value="4">4</option><option value="5">5</option><option value="6">6</option>
+    </select>
+    <button onclick="window.createMenu()"
+      class="w-full py-2.5 bg-lavender-400 text-white rounded-xl text-sm font-bold hover:bg-lavender-500 transition">
+      Crear menú
+    </button>
+  </div>`);
 });
 
-function editMenu(menuId) {
-  const menu = STATE.menus.find(m => m.id === menuId);
-  if (!menu) return;
+window.createMenu=function(){
+  const name=$('menu-name-input')?.value?.trim();
+  const mpd=+($('menu-mpd')?.value||3);
+  if(!name){toast('Escribe un nombre');return;}
+  const newMenu={id:uid(),name,mealsPerDay:mpd,days:Array.from({length:7},()=>Array(mpd).fill(null))};
+  S.menus.push(newMenu);save();window.closeModal();renderMenus();toast('✓ Menú creado');window.editMenu(newMenu.id);
+};
 
-  function renderMenuEditor() {
-    let daysHtml = '';
-    menu.days.forEach((daySlots, di) => {
-      let slotsHtml = daySlots.map((mealId, si) => {
-        const m = mealId ? getMeal(mealId) : null;
-        return `<div class="flex items-center justify-between gap-2 py-1.5 border-b border-cream-200 last:border-0 text-xs">
-          <span class="flex-1 truncate font-medium text-gray-600">${m ? m.name : '<span class="text-gray-300">—</span>'}</span>
-          <button onclick="pickMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-sage-500 transition">
-            <i data-lucide="pencil" class="w-3 h-3"></i>
-          </button>
-          ${mealId ? `<button onclick="clearMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-red-400 transition"><i data-lucide="x" class="w-3 h-3"></i></button>` : ''}
-        </div>`;
-      }).join('');
-      daysHtml += `<div class="mb-3">
-        <div class="text-xs font-semibold text-gray-500 mb-1">${DAY_NAMES[di]}</div>
-        <div class="bg-cream-50 rounded-xl p-2">${slotsHtml}</div>
-      </div>`;
+window.editMenu=function(menuId){
+  const menu=S.menus.find(m=>m.id===menuId);if(!menu)return;
+  function renderMenuEditor(){
+    let daysHtml='';
+    menu.days.forEach((daySlots,di)=>{
+      const slotsHtml=daySlots.map((mid,si)=>{
+        const m=mid?getMeal(mid):null;
+        return`<div class="flex items-center justify-between gap-2 py-1.5 border-b border-cream-200 last:border-0 text-xs">
+          <span class="flex-1 truncate font-medium text-gray-600">${m?m.name:'<span class="text-gray-300">—</span>'}</span>
+          <button onclick="window.pickMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-sage-500"><i data-lucide="pencil" class="w-3 h-3"></i></button>
+          ${mid?`<button onclick="window.clearMenuSlot('${menuId}',${di},${si})" class="text-gray-300 hover:text-red-400"><i data-lucide="x" class="w-3 h-3"></i></button>`:''}
+        </div>`;}).join('');
+      daysHtml+=`<div class="mb-3"><div class="text-xs font-bold text-gray-500 mb-1">${DAY_NAMES[di]}</div>
+        <div class="bg-cream-50 rounded-xl p-2">${slotsHtml}</div></div>`;
     });
-
-    openModal(`
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-display text-xl">${menu.name}</h3>
-          <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-        </div>
-        <div class="max-h-[60vh] overflow-y-auto">${daysHtml}</div>
-        <button onclick="closeModal()" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-medium hover:bg-lavender-500 transition">
-          Listo
-        </button>
+    openModal(`<div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">${menu.name}</h3>
+        <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
       </div>
-    `);
-    lucide.createIcons();
+      <div class="max-h-[58vh] overflow-y-auto">${daysHtml}</div>
+      <button onclick="window.closeModal()" class="mt-4 w-full py-2 bg-lavender-400 text-white rounded-xl text-sm font-bold hover:bg-lavender-500 transition">Listo</button>
+    </div>`);
   }
-
-  window.pickMenuSlot = function(menuId, di, si) {
-    const m2 = STATE.menus.find(m => m.id === menuId);
-    if (!m2 || STATE.meals.length === 0) { toast('Crea comidas primero'); return; }
-    const listHtml = STATE.meals.map(m => `
+  window.pickMenuSlot=function(menuId,di,si){
+    const m2=S.menus.find(m=>m.id===menuId);
+    if(!m2||!S.meals.length){toast('Crea comidas primero');return;}
+    const listHtml=S.meals.map(m=>`
       <button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl"
-        onclick="assignMenuSlot('${menuId}',${di},${si},'${m.id}')">
+        onclick="window.assignMenuSlot('${menuId}',${di},${si},'${m.id}')">
         <span class="font-medium text-sm">${m.name}</span>
-        <span class="macro-tag bg-peach-100 text-peach-500">${fmt(mealTotals(m).kcal)} kcal</span>
+        <span class="tag tag-kcal">${fmt(mealTotals(m).kcal)} kcal</span>
       </button>`).join('');
-    openModal(`
-      <div class="p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="font-display text-xl">Elegir comida</h3>
-          <button onclick="editMenu('${menuId}')" class="text-gray-400 hover:text-gray-600"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
-        </div>
-        <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
-        <button onclick="assignMenuSlot('${menuId}',${di},${si},null)" class="mt-3 w-full py-2 text-sm text-gray-400 hover:text-gray-600 border border-cream-300 rounded-xl">
-          Sin comida (vacío)
-        </button>
+    openModal(`<div class="p-6">
+      <div class="flex items-center justify-between mb-4">
+        <h3 class="font-display text-xl">Elegir comida</h3>
+        <button onclick="window.editMenu('${menuId}')" class="text-gray-400 hover:text-gray-600"><i data-lucide="arrow-left" class="w-5 h-5"></i></button>
       </div>
-    `);
-    lucide.createIcons();
+      <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
+      <button onclick="window.assignMenuSlot('${menuId}',${di},${si},null)"
+        class="mt-3 w-full py-2 text-sm text-gray-400 border border-cream-300 rounded-xl hover:bg-cream-100">Sin comida</button>
+    </div>`);
   };
-
-  window.assignMenuSlot = function(menuId, di, si, mealId) {
-    const m2 = STATE.menus.find(m => m.id === menuId);
-    if (!m2) return;
-    m2.days[di][si] = mealId;
-    saveState();
-    editMenu(menuId);
+  window.assignMenuSlot=function(menuId,di,si,mealId){
+    const m2=S.menus.find(m=>m.id===menuId);if(!m2)return;
+    m2.days[di][si]=mealId;save();window.editMenu(menuId);
   };
-
-  window.clearMenuSlot = function(menuId, di, si) {
-    const m2 = STATE.menus.find(m => m.id === menuId);
-    if (!m2) return;
-    m2.days[di][si] = null;
-    saveState();
-    editMenu(menuId);
+  window.clearMenuSlot=function(menuId,di,si){
+    const m2=S.menus.find(m=>m.id===menuId);if(!m2)return;
+    m2.days[di][si]=null;save();window.editMenu(menuId);
   };
-
   renderMenuEditor();
-}
+};
 
-/** Apply a menu template to the current week */
-function applyMenu(menuId) {
-  const menu = STATE.menus.find(m => m.id === menuId);
-  if (!menu) return;
-  const dates = weekDates(currentWeekMonday);
-  menu.days.forEach((daySlots, di) => {
-    const key = isoDate(dates[di]);
-    STATE.weekPlan[key] = { slots: [...daySlots] };
-  });
-  saveState();
-  toast(`✓ Menú "${menu.name}" aplicado a la semana`);
-  showView('dashboard');
-}
+window.applyMenu=function(menuId){
+  const menu=S.menus.find(m=>m.id===menuId);if(!menu)return;
+  const dates=weekDates(currentWeekMonday);
+  menu.days.forEach((daySlots,di)=>{S.weekPlan[isoDate(dates[di])]={slots:[...daySlots]};});
+  save();toast('✓ Menú "'+menu.name+'" aplicado');showView('dashboard');
+};
 
-// "Aplicar Menú" button in dashboard header
-$('btn-apply-menu').addEventListener('click', () => {
-  if (STATE.menus.length === 0) { toast('No tienes menús guardados'); return; }
-  const listHtml = STATE.menus.map(m => `
+$('btn-apply-menu').addEventListener('click',()=>{
+  if(!S.menus.length){toast('No tienes menús guardados');return;}
+  const listHtml=S.menus.map(m=>`
     <button class="w-full text-left px-4 py-3 hover:bg-lavender-50 transition flex items-center justify-between rounded-xl"
-      onclick="applyMenu('${m.id}'); closeModal()">
+      onclick="window.applyMenu('${m.id}');window.closeModal()">
       <span class="font-medium text-sm">${m.name}</span>
       <span class="text-xs text-gray-400">${m.mealsPerDay} comidas/día</span>
     </button>`).join('');
-  openModal(`
-    <div class="p-6">
-      <div class="flex items-center justify-between mb-4">
-        <h3 class="font-display text-xl">Aplicar menú</h3>
-        <button onclick="closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-      </div>
-      <div class="space-y-1">${listHtml}</div>
+  openModal(`<div class="p-6">
+    <div class="flex items-center justify-between mb-4">
+      <h3 class="font-display text-xl">Aplicar menú</h3>
+      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
     </div>
-  `);
+    <div class="space-y-1">${listHtml}</div>
+  </div>`);
 });
 
-/* ════════════════════════════════════════════════
-   SECTION 9 — MODAL ENGINE
-════════════════════════════════════════════════ */
+/* ═══════════════════════════════════════════
+   § 14 — MODAL ENGINE
+═══════════════════════════════════════════ */
+function openModal(html){$('modal-box').innerHTML=html;$('modal-backdrop').classList.remove('hidden');refreshUI();}
+window.closeModal=function(){$('modal-backdrop').classList.add('hidden');$('modal-box').innerHTML='';};
+$('modal-backdrop').addEventListener('click',e=>{if(e.target===$('modal-backdrop'))window.closeModal();});
 
-function openModal(html) {
-  $('modal-box').innerHTML = html;
-  $('modal-backdrop').classList.remove('hidden');
-  lucide.createIcons();
-}
-
-function closeModal() {
-  $('modal-backdrop').classList.add('hidden');
-  $('modal-box').innerHTML = '';
-}
-
-// Close on backdrop click
-$('modal-backdrop').addEventListener('click', e => {
-  if (e.target === $('modal-backdrop')) closeModal();
-});
-
-// Expose to global for onclick in injected HTML
-window.closeModal      = closeModal;
-window.openMealDetail  = openMealDetail;
-window.openSlotPicker  = openSlotPicker;
-window.assignSlot      = assignSlot;
-window.removeSlot      = removeSlot;
-window.addSlot         = addSlot;
-window.openEditMeal    = openEditMeal;
-window.deleteMeal      = deleteMeal;
-window.editMenu        = editMenu;
-window.deleteMenu      = deleteMenu;
-window.applyMenu       = applyMenu;
-
-/* ════════════════════════════════════════════════
-   SECTION 10 — BOOTSTRAP
-════════════════════════════════════════════════ */
-
-function init() {
-  lucide.createIcons();
-  showView('dashboard');
-}
-
+/* ═══════════════════════════════════════════
+   § 15 — INIT
+═══════════════════════════════════════════ */
+function init(){showView('dashboard');refreshUI();}
 init();
+
+}); // fin window.addEventListener('load')
 </script>
 </body>
 </html>
