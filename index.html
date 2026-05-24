@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>NutriPlan</title>
+<title>NutriPlan v6</title>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,500;1,9..144,300&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 <script src="https://cdn.tailwindcss.com"></script>
@@ -161,6 +161,10 @@ input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(9
           <i data-lucide="upload" class="w-4 h-4"></i> Importar Datos
           <input type="file" accept=".json" id="import-file-input" class="hidden" onchange="window.importData(this)"/>
         </label>
+        <label class="text-sm px-4 py-2 bg-peach-400 text-white rounded-xl hover:bg-peach-500 transition flex items-center gap-1.5 font-medium cursor-pointer" title="Sube un JSON con array de alimentos: [{n,kcal,p,hc,g}]">
+          <i data-lucide="database" class="w-4 h-4"></i> Importar Alimentos (JSON)
+          <input type="file" accept=".json" id="bulk-foods-input" class="hidden" onchange="window.bulkImportFoods(this)"/>
+        </label>
       </div>
     </div>
 
@@ -249,6 +253,24 @@ input:focus,select:focus,textarea:focus{outline:none;box-shadow:0 0 0 3px rgba(9
       <div id="tdee-result" class="mt-3 hidden bg-sage-50 border border-sage-200 rounded-xl p-4 text-sm">
         <p class="font-bold text-sage-600" id="tdee-text"></p>
         <p class="text-gray-400 text-xs mt-0.5" id="bmr-text"></p>
+      </div>
+      <!-- Objetivo manual -->
+      <div class="mt-4 pt-4 border-t border-cream-200">
+        <label class="text-xs text-gray-500 font-semibold mb-1 block flex items-center gap-1.5">
+          <i data-lucide="pencil-line" class="w-3.5 h-3.5 text-peach-400"></i>
+          Objetivo calórico manual
+          <span class="font-normal text-gray-300 ml-1">(sobrescribe el cálculo automático)</span>
+        </label>
+        <div class="flex gap-2 items-center">
+          <input id="p-manual-kcal" type="number" min="500" max="10000" placeholder="ej. 2000"
+            class="flex-1 border border-cream-300 rounded-xl px-3 py-2 text-sm bg-cream-50"
+            oninput="window.previewManualKcal()"/>
+          <button onclick="window.clearManualKcal()" title="Borrar y volver al cálculo automático"
+            class="px-3 py-2 border border-cream-300 rounded-xl text-xs text-gray-400 hover:bg-cream-100 transition whitespace-nowrap">
+            Usar fórmula
+          </button>
+        </div>
+        <div id="manual-kcal-hint" class="mt-1.5 text-xs text-gray-400 hidden"></div>
       </div>
     </div>
     <div class="postit p-6 mb-4">
@@ -408,7 +430,7 @@ const BASIC_FOODS = [
 ═══════════════════════════════════════════ */
 const SK = 'nutriplan_v2';
 function defaultState(){return{
-  profile:{age:null,sex:'male',weight:null,height:null,activity:1.55,tdee:null,bmr:null,carbsPct:50,protPct:25,fatPct:25},
+  profile:{age:null,sex:'male',weight:null,height:null,activity:1.55,tdee:null,bmr:null,carbsPct:50,protPct:25,fatPct:25,manualKcal:null},
   customIngredients:[],
   meals:[],
   weekPlan:{},
@@ -523,9 +545,11 @@ function calcHB({age,sex,weight,height,activity}){
   return{bmr:Math.round(bmr),tdee:Math.round(bmr*activity)};
 }
 function macroGoals(){
-  const{tdee,carbsPct,protPct,fatPct}=S.profile;
-  if(!tdee)return null;
-  return{kcal:tdee,carbs:Math.round(tdee*carbsPct/100/4),prot:Math.round(tdee*protPct/100/4),fat:Math.round(tdee*fatPct/100/9)};
+  const{tdee,manualKcal,carbsPct,protPct,fatPct}=S.profile;
+  // Prioridad: manual > tdee calculado
+  const base=manualKcal&&manualKcal>0?manualKcal:tdee;
+  if(!base)return null;
+  return{kcal:base,carbs:Math.round(base*carbsPct/100/4),prot:Math.round(base*protPct/100/4),fat:Math.round(base*fatPct/100/9),isManual:!!(manualKcal&&manualKcal>0)};
 }
 
 /* ═══════════════════════════════════════════
@@ -571,6 +595,41 @@ window.importData=function(input){
       updateHeaderKcal();
     }catch(err){
       toast('⚠️ Error: '+err.message);
+      input.value='';
+    }
+  };
+  reader.readAsText(file);
+};
+
+/* ─── Importación masiva de alimentos desde JSON ─── */
+window.bulkImportFoods=function(input){
+  const file=input.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(e){
+    try{
+      const raw=JSON.parse(e.target.result);
+      if(!Array.isArray(raw)){throw new Error('El JSON debe ser un array: [{n,kcal,p,hc,g}, ...]');}
+      let added=0,skipped=0,errors=0;
+      raw.forEach((item)=>{
+        if(typeof item!=='object'||item===null){errors++;return;}
+        const name=(item.n||item.name||'').trim();
+        const kcal=parseFloat(item.kcal)||0;
+        const prot=parseFloat(item.p!==undefined?item.p:item.prot)||0;
+        const carbs=parseFloat(item.hc!==undefined?item.hc:item.carbs)||0;
+        const fat=parseFloat(item.g!==undefined?item.g:item.fat)||0;
+        const cat=(item.cat||'otros').trim();
+        if(!name){errors++;return;}
+        const exists=S.customIngredients.some(c=>c.name.toLowerCase()===name.toLowerCase());
+        if(exists){skipped++;return;}
+        S.customIngredients.push({id:uid(),name,kcalPer100:kcal,protPer100:prot,carbsPer100:carbs,fatPer100:fat,cat,source:'manual'});
+        added++;
+      });
+      save();input.value='';renderFoodsLibrary();
+      const msg=`✓ ${added} alimento${added!==1?'s':''} importado${added!==1?'s':''}${skipped?', '+skipped+' omitido'+(skipped!==1?'s':'')+' (duplicado'+(skipped!==1?'s':'')+')':''}${errors?' · ⚠️ '+errors+' entrada'+(errors!==1?'s':'')+' inválida'+(errors!==1?'s':''):''}`;
+      toast(msg,4500);
+    }catch(err){
+      toast('⚠️ Error al importar: '+err.message,4000);
       input.value='';
     }
   };
@@ -762,15 +821,35 @@ $('btn-calc-tdee').addEventListener('click',()=>{
 $('btn-save-profile').addEventListener('click',()=>{
   const c=+$('p-carbs-pct').value,pr=+$('p-prot-pct').value,fa=+$('p-fat-pct').value;
   if(c+pr+fa!==100){toast('Los macros deben sumar 100%');return;}
+  const manualRaw=$('p-manual-kcal')?.value?.trim();
+  const manualKcal=manualRaw?Math.max(500,parseInt(manualRaw,10)||0):null;
   Object.assign(S.profile,{
     age:+$('p-age').value||S.profile.age,sex:$('p-sex').value,
     weight:+$('p-weight').value||S.profile.weight,
     height:+$('p-height').value||S.profile.height,
     activity:+$('p-activity').value,carbsPct:c,protPct:pr,fatPct:fa,
     tdee:S.profile._tmpTdee||S.profile.tdee,bmr:S.profile._tmpBmr||S.profile.bmr,
+    manualKcal,
   });
   save();toast('✓ Perfil guardado');updateHeaderKcal();
 });
+
+window.previewManualKcal=function(){
+  const val=parseInt($('p-manual-kcal')?.value)||0;
+  const hint=$('manual-kcal-hint');
+  if(!hint)return;
+  if(val>0){
+    const c=+$('p-carbs-pct').value||50,pr=+$('p-prot-pct').value||25,fa=+$('p-fat-pct').value||25;
+    hint.textContent=`→ Macros: ${Math.round(val*c/100/4)}g HC · ${Math.round(val*pr/100/4)}g P · ${Math.round(val*fa/100/9)}g G`;
+    hint.classList.remove('hidden');
+  }else{hint.classList.add('hidden');}
+};
+
+window.clearManualKcal=function(){
+  if($('p-manual-kcal'))$('p-manual-kcal').value='';
+  const hint=$('manual-kcal-hint');if(hint)hint.classList.add('hidden');
+  S.profile.manualKcal=null;save();toast('Usando objetivo de la fórmula');updateHeaderKcal();
+};
 
 function loadProfileForm(){
   const p=S.profile;
@@ -779,6 +858,11 @@ function loadProfileForm(){
   $('p-sex').value=p.sex;$('p-activity').value=p.activity;
   $('p-carbs-pct').value=p.carbsPct;$('p-prot-pct').value=p.protPct;$('p-fat-pct').value=p.fatPct;
   if(p.tdee){$('tdee-text').textContent='Objetivo: '+p.tdee+' kcal/día';$('bmr-text').textContent='BMR: '+p.bmr+' kcal/día';$('tdee-result').classList.remove('hidden');}
+  if(p.manualKcal){
+    $('p-manual-kcal').value=p.manualKcal;
+    const hint=$('manual-kcal-hint');
+    if(hint){hint.textContent='✓ Activo — usando '+p.manualKcal+' kcal como objetivo';hint.classList.remove('hidden');}
+  }
 }
 
 function updateHeaderKcal(){
@@ -786,7 +870,8 @@ function updateHeaderKcal(){
   $('header-kcal').classList.remove('hidden');
   const dd=S.weekPlan[isoDate(new Date())];
   let eaten=0;(dd?.slots||[]).forEach(sid=>{const m=getMeal(sid);if(m)eaten+=mealTotals(m).kcal;});
-  $('header-kcal-text').textContent=fmt(eaten)+' / '+goals.kcal+' kcal';
+  const manualTag=goals.isManual?' ✎':'';
+  $('header-kcal-text').textContent=fmt(eaten)+' / '+goals.kcal+' kcal'+manualTag;
 }
 
 /* ═══════════════════════════════════════════
@@ -932,21 +1017,53 @@ window.removeSlot=function(key,si){
 
 window.openSlotPicker=function(key,si){
   if(!S.meals.length){toast('Primero crea comidas en "Mis Comidas"');return;}
-  const listHtml=S.meals.map(m=>{
-    const t=mealTotals(m);
-    const catTag=m.category?`<span class="tag ${CAT_COLORS[m.category]||''} ml-1">${CAT_LABELS[m.category]||''}</span>`:'';
-    return`<button class="w-full text-left px-4 py-3 hover:bg-sage-50 transition flex items-center justify-between rounded-xl gap-2"
-      onclick="window.assignSlot('${key}',${si},'${m.id}')">
-      <span class="font-medium text-sm flex items-center gap-1">${m.name}${catTag}</span>
-      <span class="tag tag-kcal">${fmt(t.kcal)} kcal</span>
-    </button>`;}).join('');
-  openModal(`<div class="p-6">
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="font-display text-xl">Elegir comida</h3>
-      <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
-    </div>
-    <div class="space-y-1 max-h-80 overflow-y-auto">${listHtml}</div>
-  </div>`);
+  // Estado interno del picker
+  let _pickerQ='';let _pickerCat='all';
+
+  function renderPicker(){
+    let meals=S.meals;
+    if(_pickerCat!=='all')meals=meals.filter(m=>m.category===_pickerCat);
+    if(_pickerQ)meals=meals.filter(m=>m.name.toLowerCase().includes(_pickerQ.toLowerCase()));
+
+    const listHtml=meals.length?meals.map(m=>{
+      const t=mealTotals(m);
+      const catTag=m.category?`<span class="tag ${CAT_COLORS[m.category]||''} mr-1">${CAT_LABELS[m.category]||''}</span>`:'';
+      return`<button class="w-full text-left px-3 py-2.5 hover:bg-sage-50 transition flex items-center justify-between rounded-xl gap-2"
+        onclick="window.assignSlot('${key}',${si},'${m.id}')">
+        <span class="font-medium text-sm flex items-center gap-1 min-w-0 truncate">${catTag}${m.name}</span>
+        <span class="tag tag-kcal shrink-0">${fmt(t.kcal)} kcal</span>
+      </button>`;}).join('')
+      :'<p class="text-xs text-gray-400 py-4 text-center">Sin resultados</p>';
+
+    const catPills=['all','desayuno','comida','cena','snack'].map(c=>{
+      const lbl=c==='all'?'Todas':CAT_LABELS[c];
+      return`<button class="cat-pill text-xs ${_pickerCat===c?'active':''}" onclick="window._pickerSetCat('${c}')">${lbl}</button>`;
+    }).join('');
+
+    openModal(`<div class="p-5">
+      <div class="flex items-center justify-between mb-3">
+        <h3 class="font-display text-xl">Elegir comida</h3>
+        <button onclick="window.closeModal()" class="text-gray-400 hover:text-gray-600"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <!-- Buscador -->
+      <div class="relative mb-3">
+        <i data-lucide="search" class="w-4 h-4 text-gray-300 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none"></i>
+        <input id="slot-picker-search" type="text" placeholder="Buscar por nombre…" value="${_pickerQ}"
+          class="w-full border border-cream-300 rounded-xl pl-9 pr-3 py-2 text-sm bg-cream-50"
+          oninput="window._pickerSetQ(this.value)"/>
+      </div>
+      <!-- Filtro categoría -->
+      <div class="flex flex-wrap gap-1.5 mb-3">${catPills}</div>
+      <!-- Lista resultados -->
+      <div class="space-y-0.5 max-h-72 overflow-y-auto">${listHtml}</div>
+    </div>`);
+    // Focus buscador
+    setTimeout(()=>$('slot-picker-search')?.focus(),50);
+  }
+
+  window._pickerSetQ=function(v){_pickerQ=v;renderPicker();};
+  window._pickerSetCat=function(c){_pickerCat=c;renderPicker();};
+  renderPicker();
 };
 
 window.assignSlot=function(key,si,mealId){
